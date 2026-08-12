@@ -105,6 +105,19 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
 }
 .map-dot:hover { transform: scale(1.1); }
 .me-dot { background: #5de0e6; box-shadow: 0 0 15px rgba(93,224,230,0.6); }
+.student-name-tooltip {
+    background: rgba(7,20,38,0.94) !important;
+    border: 1px solid rgba(93,224,230,0.35) !important;
+    color: #eaf2ff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important;
+    font-weight: 800 !important;
+    font-size: 11px !important;
+    padding: 4px 7px !important;
+    white-space: nowrap !important;
+}
+.student-name-tooltip::before { border-top-color: rgba(7,20,38,0.94) !important; }
+
 
 /* 거래 창에서 수락 여부를 파란색과 빨간색으로 구분한다. */
 .trade-accepted-blue { color: #60a5fa; }
@@ -211,6 +224,19 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             </div>
         </section>
 
+        <section>
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-lg font-black text-white">국가 핵심 자원</h2>
+                <div>
+                    <button id="convertBtn" class="mr-2 rounded-xl border border-cyan-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-cyan-400/10 hover:border-cyan-300/60">🔁 국내 교환</button>
+                    <!-- 자원 카드 구매 기능을 여는 버튼을 기존 자원 영역에 추가한다. -->
+                    <button id="resourceCardBtn" class="mr-2 rounded-xl border border-purple-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-purple-400/10 hover:border-purple-300/60">🃏 자원 카드</button>
+                    <button id="openTrade" class="trade-action rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 text-sm font-black text-slate-950 shadow-md transition-transform hover:scale-105">🤝 무역 제안</button>
+                </div>
+            </div>
+            <div id="resources" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"></div>
+        </section>
+
         <section class="rounded-3xl p-5 glass">
             <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
                 <div>
@@ -243,18 +269,7 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             </div>
         </section>
 
-        <section>
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-lg font-black text-white">국가 핵심 자원</h2>
-                <div>
-                    <button id="convertBtn" class="mr-2 rounded-xl border border-cyan-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-cyan-400/10 hover:border-cyan-300/60">🔁 국내 교환</button>
-                    <!-- 자원 카드 구매 기능을 여는 버튼을 기존 자원 영역에 추가한다. -->
-                    <button id="resourceCardBtn" class="mr-2 rounded-xl border border-purple-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-purple-400/10 hover:border-purple-300/60">🃏 자원 카드</button>
-                    <button id="openTrade" class="trade-action rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 text-sm font-black text-slate-950 shadow-md transition-transform hover:scale-105">🤝 무역 제안</button>
-                </div>
-            </div>
-            <div id="resources" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"></div>
-        </section>
+
 
         <section class="grid gap-5 lg:grid-cols-2">
             <div class="rounded-2xl p-5 glass">
@@ -379,56 +394,62 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             <!-- 거래를 취소하는 버튼을 제공한다. -->
             <button id="tradeSessionCancelTop" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
         </div>
-        <!-- 양쪽 플레이어의 상태와 교환 내용을 표시한다. -->
-        <div class="mt-4 grid gap-4 lg:grid-cols-2">
-            <!-- 내 거래 영역이다. -->
-            <section class="trade-offer-card rounded-2xl p-4">
-                <!-- 내 기본 정보를 표시한다. -->
-                <div id="tradeSelfInfo"></div>
-                <!-- 내가 상대에게 줄 자원과 국고를 선택한다. -->
-                <div class="mt-4">
-                    <h3 class="font-black text-cyan-100">내가 줄 것</h3>
-                    <div id="tradeSelfOfferInputs" class="mt-3 grid grid-cols-2 gap-2"></div>
+        <!-- 거래 정보와 거래 전용 채팅을 한 화면의 좌우 영역으로 배치한다. -->
+        <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <!-- 왼쪽에는 양쪽 플레이어의 거래 정보와 수락 버튼을 표시한다. -->
+            <div>
+                <!-- 양쪽 플레이어의 상태와 교환 내용을 표시한다. -->
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <!-- 내 거래 영역이다. -->
+                    <section class="trade-offer-card rounded-2xl p-4">
+                        <!-- 내 기본 정보를 표시한다. -->
+                        <div id="tradeSelfInfo"></div>
+                        <!-- 내가 상대에게 줄 자원과 국고를 선택한다. -->
+                        <div class="mt-4">
+                            <h3 class="font-black text-cyan-100">내가 줄 것</h3>
+                            <div id="tradeSelfOfferInputs" class="mt-3 grid grid-cols-2 gap-2"></div>
+                        </div>
+                        <!-- 내 수락 상태를 표시한다. -->
+                        <div id="tradeSelfAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
+                    </section>
+                    <!-- 상대방 거래 영역이다. -->
+                    <section class="trade-offer-card rounded-2xl p-4">
+                        <!-- 상대방의 기본 정보를 표시한다. -->
+                        <div id="tradeOpponentInfo"></div>
+                        <!-- 상대방이 주는 자원과 국고를 실시간으로 표시한다. -->
+                        <div class="mt-4">
+                            <h3 class="font-black text-cyan-100">상대방이 줄 것</h3>
+                            <div id="tradeOpponentOffer" class="mt-3 grid grid-cols-2 gap-2"></div>
+                        </div>
+                        <!-- 상대방의 수락 상태를 표시한다. -->
+                        <div id="tradeOpponentAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
+                    </section>
                 </div>
-                <!-- 내 수락 상태를 표시한다. -->
-                <div id="tradeSelfAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
-            </section>
-            <!-- 상대방 거래 영역이다. -->
-            <section class="trade-offer-card rounded-2xl p-4">
-                <!-- 상대방의 기본 정보를 표시한다. -->
-                <div id="tradeOpponentInfo"></div>
-                <!-- 상대방이 주는 자원과 국고를 실시간으로 표시한다. -->
-                <div class="mt-4">
-                    <h3 class="font-black text-cyan-100">상대방이 줄 것</h3>
-                    <div id="tradeOpponentOffer" class="mt-3 grid grid-cols-2 gap-2"></div>
+                <!-- 양쪽 모두 수락해야 거래가 체결된다는 안내를 표시한다. -->
+                <p id="tradeSessionHint" class="mt-4 text-center text-xs text-sky-100/60">양쪽 모두 수락 버튼을 눌러야 거래가 체결됩니다. 거래 내용을 바꾸면 수락 상태가 다시 해제됩니다.</p>
+                <!-- 거래 수락과 취소 버튼을 배치한다. -->
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <!-- 현재 사용자의 수락 상태를 토글한다. -->
+                    <button id="tradeSessionAccept" class="rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">거래 수락</button>
+                    <!-- 거래를 취소한다. -->
+                    <button id="tradeSessionCancel" class="rounded-xl bg-slate-700 px-4 py-3 font-black text-white shadow-md transition hover:bg-rose-500">거래 취소</button>
                 </div>
-                <!-- 상대방의 수락 상태를 표시한다. -->
-                <div id="tradeOpponentAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
+            </div>
+            <!-- 오른쪽에는 거래 중인 두 학생만 사용하는 거래 전용 채팅을 표시한다. -->
+            <section class="trade-chat-panel rounded-2xl p-4 lg:min-h-[520px] flex flex-col">
+                <!-- 거래 채팅 제목과 거래 채팅임을 표시한다. -->
+                <div class="flex items-center justify-between gap-3">
+                    <h3 class="font-black text-violet-100">💬 거래 전용 채팅</h3>
+                    <span class="rounded-full bg-violet-400/20 px-2 py-1 text-[10px] font-black text-violet-200">거래 채팅</span>
+                </div>
+                <!-- 거래 전용 채팅 메시지를 실시간으로 표시한다. -->
+                <div id="tradeChatMessages" class="mt-3 min-h-0 flex-1 overflow-y-auto rounded-xl border border-violet-300/15 bg-slate-950/45 p-3"></div>
+                <!-- 거래 전용 채팅 입력창과 전송 버튼이다. -->
+                <div class="mt-3 flex gap-2">
+                    <input id="tradeChatInput" class="min-w-0 flex-1 rounded-xl border border-violet-300/25 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-300" placeholder="거래할 내용을 입력하세요.">
+                    <button id="sendTradeChat" class="rounded-xl bg-violet-400 px-4 py-2.5 font-black text-white shadow-md hover:bg-violet-300">전송</button>
+                </div>
             </section>
-        </div>
-        <!-- 거래 중인 두 학생만 사용하는 별도의 채팅 영역이다. -->
-        <section class="trade-chat-panel mt-4 rounded-2xl p-4">
-            <!-- 거래 채팅 제목과 교환 중임을 표시한다. -->
-            <div class="flex items-center justify-between gap-3">
-                <h3 class="font-black text-violet-100">💬 거래 전용 채팅</h3>
-                <span class="rounded-full bg-violet-400/20 px-2 py-1 text-[10px] font-black text-violet-200">거래 채팅</span>
-            </div>
-            <!-- 거래 전용 채팅 메시지를 실시간으로 표시한다. -->
-            <div id="tradeChatMessages" class="mt-3 h-44 overflow-y-auto rounded-xl border border-violet-300/15 bg-slate-950/45 p-3"></div>
-            <!-- 거래 전용 채팅 입력창과 전송 버튼이다. -->
-            <div class="mt-3 flex gap-2">
-                <input id="tradeChatInput" class="min-w-0 flex-1 rounded-xl border border-violet-300/25 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-300" placeholder="거래할 내용을 입력하세요.">
-                <button id="sendTradeChat" class="rounded-xl bg-violet-400 px-4 py-2.5 font-black text-white shadow-md hover:bg-violet-300">전송</button>
-            </div>
-        </section>
-        <!-- 양쪽 모두 수락해야 거래가 체결된다는 안내를 표시한다. -->
-        <p id="tradeSessionHint" class="mt-4 text-center text-xs text-sky-100/60">양쪽 모두 수락 버튼을 눌러야 거래가 체결됩니다. 거래 내용을 바꾸면 수락 상태가 다시 해제됩니다.</p>
-        <!-- 거래 수락과 취소 버튼을 배치한다. -->
-        <div class="mt-4 grid grid-cols-2 gap-3">
-            <!-- 현재 사용자의 수락 상태를 토글한다. -->
-            <button id="tradeSessionAccept" class="rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">거래 수락</button>
-            <!-- 거래를 취소한다. -->
-            <button id="tradeSessionCancel" class="rounded-xl bg-slate-700 px-4 py-3 font-black text-white shadow-md transition hover:bg-rose-500">거래 취소</button>
         </div>
     </div>
 </dialog>
@@ -761,8 +782,17 @@ async function join(name,teacher=false,country=''){
     $('myNationName').textContent=teacher?'':((current.countryFlag||country?.flag||'🌐')+' '+(current.country||country?.name||name));
     $('myNickname').textContent=teacher?'':('닉네임: '+(current.displayName||name)+' · 출석번호 '+(current.studentNo||$('numberInput').value.trim()||'미등록')+' · '+(current.classIdentity||identity.label));
     $('nationName').textContent=teacher?room.name+' · 교사':(current.countryFlag||country?.flag||'🌐')+' '+(current.country||country?.name||name);
-    
-    initMap();watch();startHeartbeat()
+    // 입장 직후에도 현재 학생이 지도에 즉시 나타나도록 로컬 상태를 먼저 반영한다.
+    if(!teacher){
+        const localPlayer={id:uid,...current,displayName:name,role:'student'};
+        const existingIndex=players.findIndex(player=>player.id===uid);
+        if(existingIndex>=0)players[existingIndex]=localPlayer;else players.push(localPlayer);
+    }
+    // 지도와 실시간 Firestore 구독을 초기화한다.
+    initMap();
+    renderMapPlayers();
+    watch();
+    startHeartbeat();
 }
 
 $('enterBtn').onclick=async()=>{
@@ -822,7 +852,7 @@ function renderPlayerList(){
         return `<div class="flex items-center gap-2 rounded-xl border p-2 transition hover:bg-slate-800/50 ${p.id===uid?'border-cyan-300/60 bg-cyan-900/40':'border-sky-400/15 bg-slate-900/30'}">
             <button onclick="window.focusNation('`+p.id+`')" class="flex min-w-0 flex-1 items-center gap-2 text-left hover:opacity-80">
                 <span class="text-xl">${safe(p.countryFlag||'🌐')}</span>
-                <span class="min-w-0"><b class="block truncate text-sm text-sky-50">${safe(p.country||p.displayName)}</b><small class="block truncate text-sky-100/60">${safe(p.displayName)} · 출석번호 ${safe(p.studentNo||'미등록')} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
+                <span class="min-w-0"><b class="block truncate text-sm text-sky-50">${safe(p.country||'미배정')} · ${safe(p.displayName||'학생')}</b><small class="block truncate text-sky-100/60">출석번호 ${safe(p.studentNo||'미등록')} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
             </button>
             <button onclick="window.openChat('`+p.id+`')" class="rounded-lg bg-cyan-400/15 px-2 py-1 text-xs hover:bg-cyan-400/30 transition shadow-sm" title="1:1 채팅">💬</button>
             <span class="h-2 w-2 rounded-full shadow-sm ${isActive?'bg-emerald-400':'bg-slate-600'}"></span>
@@ -840,30 +870,34 @@ function getCountryMapPosition(player){
 }
 
 function renderMapPlayers(){
-    // 지도와 마커 레이어가 준비되지 않았으면 다음 실시간 갱신에서 다시 렌더링한다.
+    // 지도 객체가 준비되지 않았다면 다음 Firestore 실시간 스냅샷에서 다시 렌더링한다.
     if(!map||!markerLayer)return;
-    // 기존 마커를 제거하여 최신 학생 목록으로 다시 그린다.
-    markerLayer.clearLayers();markersById={};
-    // 교사를 제외한 모든 학생을 지도에 표시한다.
+    // 최신 학생 데이터만으로 지도 마커를 다시 구성한다.
+    markerLayer.clearLayers();
+    markersById={};
+    // 교사 계정을 제외한 모든 학생을 실시간 지도에 표시한다.
     players.filter(player=>player.role!=='teacher').forEach(player=>{
-        // 저장된 좌표가 없으면 국가 기본 좌표를 사용한다.
+        // 학생 문서의 좌표가 없으면 국가 기본 좌표를 사용한다.
         const position=getCountryMapPosition(player);
-        // 위치를 전혀 찾을 수 없는 학생만 지도 마커에서 제외한다.
+        // 국가 정보가 전혀 없는 기존 학생도 목록에는 남기되 지도에서는 제외한다.
         if(!position)return;
-        // 현재 국가의 레벨을 계산한다.
+        // 현재 학생의 레벨을 계산한다.
         const currentLevel=levelFor(player.inventory||{},player.country||'').level;
-        // 현재 로그인한 학생은 다른 색으로 표시한다.
+        // 현재 로그인한 학생은 기존 강조 표시를 유지한다.
         const isMine=player.id===uid;
-        const html=`<div class="map-dot ${isMine?'me-dot':''}">${player.countryFlag||'🏳️'}</div>`;
-        // 국가 위치에 실시간 마커를 생성한다.
+        // 국가 국기 아이콘을 생성한다.
+        const html=`<div class="map-dot ${isMine?'me-dot':''}">${safe(player.countryFlag||'🏳️')}</div>`;
+        // 학생 한 명당 하나의 Leaflet 마커를 생성한다.
         const marker=L.marker([position.lat,position.lng],{icon:L.divIcon({className:'nation-marker',html,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markerLayer);
-        // 거래 애니메이션과 국가 포커스에서 사용할 마커를 저장한다.
+        // 거래 애니메이션과 학생 포커스 기능에서 사용할 마커를 저장한다.
         markersById[player.id]=marker;
-        // 국가 정보를 표시할 팝업 DOM을 생성한다.
+        // 지도에서 국가 옆에 학생 닉네임이 항상 보이도록 영구 툴팁을 연결한다.
+        marker.bindTooltip(`${safe(player.countryFlag||'🌐')} ${safe(player.country||'미배정')} · ${safe(player.displayName||'학생')}`,{permanent:true,direction:'top',offset:[0,-16],className:'student-name-tooltip',opacity:0.95});
+        // 국가 상세 정보를 팝업으로 구성한다.
         const popupNode=document.createElement('div');
         popupNode.style.cssText='min-width:240px; color:#eaf2ff; line-height:1.4;';
-        popupNode.innerHTML=`<b style="font-size:16px; color:#5de0e6;">${safe(player.countryFlag||'🌐')} ${safe(player.country||player.displayName)}</b><br><span style="font-size:13px; color:#9fb0c9;">${safe(player.displayName)} (${safe(player.classIdentity||'')}) · 출석번호 ${safe(player.studentNo||'미등록')} · 국가 레벨 ${currentLevel}</span><br><div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; font-weight:bold;"><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">노동 ${fmt(player.inventory?.labor)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">광물 ${fmt(player.inventory?.mineral)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">수자원 ${fmt(player.inventory?.water)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">기술 ${fmt(player.inventory?.technology)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; grid-column:1 / 3;">첨단 ${fmt(player.inventory?.advanced)}</div></div>`;
-        // 다른 학생에게는 거래와 채팅 버튼을 제공한다.
+        popupNode.innerHTML=`<b style="font-size:16px; color:#5de0e6;">${safe(player.countryFlag||'🌐')} ${safe(player.country||'미배정')}</b><br><span style="font-size:13px; color:#9fb0c9;">닉네임: ${safe(player.displayName||'학생')} · 출석번호 ${safe(player.studentNo||'미등록')} · ${safe(player.classIdentity||'')} · 국가 레벨 ${currentLevel}</span><br><div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; font-weight:bold;"><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">노동 ${fmt(player.inventory?.labor)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">광물 ${fmt(player.inventory?.mineral)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">수자원 ${fmt(player.inventory?.water)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">기술 ${fmt(player.inventory?.technology)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; grid-column:1 / 3;">첨단 ${fmt(player.inventory?.advanced)}</div></div>`;
+        // 다른 학생에게 기존 거래와 채팅 버튼을 제공한다.
         if(!isMine){
             const buttonWrapper=document.createElement('div');
             buttonWrapper.style.cssText='display:flex; gap:8px; margin-top:14px;';
@@ -878,11 +912,13 @@ function renderMapPlayers(){
             buttonWrapper.append(tradeButton,chatButton);
             popupNode.append(buttonWrapper);
         }
-        // 팝업을 국가 마커에 연결한다.
+        // 국가 상세 팝업을 연결한다.
         marker.bindPopup(popupNode,{autoClose:false,closeOnClick:false});
     });
-    // 지도 옆 학생 목록도 같은 실시간 데이터로 갱신한다.
+    // 지도 옆 학생 목록도 같은 Firestore 실시간 데이터로 즉시 갱신한다.
     renderPlayerList();
+    // Leaflet에게 지도 크기 변경을 즉시 알려 마커가 화면에 확실히 렌더링되도록 한다.
+    setTimeout(()=>map.invalidateSize({pan:false}),0);
 }
 
 window.tradeWith=id=>{
@@ -891,8 +927,21 @@ window.tradeWith=id=>{
 };
 
 async function pingPresence(){
+    // 방과 로그인 정보가 없으면 접속 상태를 갱신하지 않는다.
     if(!roomId||!uid)return;
-    try{await setDoc(doc(db,`rooms/${roomId}/players/${uid}`),{online:true,lastSeen:serverTimestamp()},{merge:true})}catch(e){}
+    // Firestore에 현재 사용자의 접속 상태를 기록한다.
+    try{
+        await setDoc(doc(db,`rooms/${roomId}/players/${uid}`),{online:true,lastSeen:serverTimestamp()},{merge:true});
+        // 내 로컬 학생 정보도 즉시 온라인 상태로 갱신하여 지도와 목록의 상태가 지연되지 않게 한다.
+        const localPlayer=players.find(player=>player.id===uid);
+        if(localPlayer){
+            localPlayer.online=true;
+            localPlayer.lastSeen={toDate:()=>new Date()};
+            renderPlayerList();
+        }
+    }catch(e){
+        console.error('접속 상태 갱신 실패',e);
+    }
 }
 function startHeartbeat(){
     if(heartbeatTimer)clearInterval(heartbeatTimer);
@@ -1275,10 +1324,16 @@ function watch(){
     unsubs.push(onSnapshot(doc(db,`rooms/${roomId}/players/${uid}`),s=>{
         me=s.data()||{};renderMe();renderIncomePanel();fillForm();renderResourceCardMarket();processLevelUpReward();
     }));
-    unsubs.push(onSnapshot(collection(db,`rooms/${roomId}/players`),s=>{
+    unsubs.push(onSnapshot(collection(db,`rooms/${roomId}/players`),{includeMetadataChanges:true},s=>{
+        // Firestore가 서버에서 받은 최신 학생 전체 목록을 즉시 반영한다.
         players=s.docs.map(d=>({id:d.id,...d.data()}));
-        fillForm();renderMapPlayers();renderTeacherPlayers();renderMapSide();
-        setTimeout(()=>map?.invalidateSize(),50)
+        // 학생 목록과 지도와 교사 화면을 같은 스냅샷으로 동시에 갱신한다.
+        fillForm();
+        renderMapPlayers();
+        renderTeacherPlayers();
+        renderMapSide();
+        // 지도 컨테이너 크기를 즉시 재계산하여 새 마커가 화면에 표시되도록 한다.
+        requestAnimationFrame(()=>map?.invalidateSize({pan:false}));
     },e=>{console.error('플레이어 구독 오류',e);note('접속 명단 연결 오류: Firestore Rules를 확인하세요.',true)}));
     unsubs.push(onSnapshot(query(collection(db,'trades'),where('roomId','==',roomId)),s=>renderTrades(s.docs.map(d=>({id:d.id,...d.data()})))));
     unsubs.push(onSnapshot(query(collection(db,'messages'),where('roomId','==',roomId)),s=>{
