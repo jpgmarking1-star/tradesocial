@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>무역 놀이 사이트</title>
+<title>Nation Trade · 국가 성장 무역 게임</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -106,11 +106,6 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
 .map-dot:hover { transform: scale(1.1); }
 .me-dot { background: #5de0e6; box-shadow: 0 0 15px rgba(93,224,230,0.6); }
 
-/* 거래 창에서 수락 여부를 파란색과 빨간색으로 구분한다. */
-.trade-accepted-blue { color: #60a5fa; }
-.trade-not-accepted-red { color: #f87171; }
-.trade-offer-card { background: rgba(15, 30, 50, 0.55); border: 1px solid rgba(151,202,255,.15); }
-
 @media(max-width:640px) { .chartbox { height: 220px; } }
 </style>
 </head>
@@ -121,8 +116,8 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
         <div class="flex items-center gap-3">
             <div class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-yellow-300 to-orange-500 text-xl shadow-md">♜</div>
             <div>
-                <h1 class="font-black tracking-wide">무역 놀이 사이트</h1>
-                <p class="text-xs text-sky-200/60">경쟁 및 상호의존하며 자신의 국가를 발전시킵시다.^^</p>
+                <h1 class="font-black tracking-wide">NATION TRADE</h1>
+                <p class="text-xs text-sky-200/60">국가 성장 무역 시뮬레이션</p>
             </div>
         </div>
         <div id="connection" class="rounded-full border border-sky-300/20 bg-sky-950/50 px-3 py-1.5 text-xs font-bold text-sky-100 backdrop-blur-sm">연결 중…</div>
@@ -245,8 +240,6 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
                 <h2 class="text-lg font-black text-white">국가 핵심 자원</h2>
                 <div>
                     <button id="convertBtn" class="mr-2 rounded-xl border border-cyan-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-cyan-400/10 hover:border-cyan-300/60">🔁 국내 교환</button>
-                    <!-- 자원 카드 구매 기능을 여는 버튼을 기존 자원 영역에 추가한다. -->
-                    <button id="resourceCardBtn" class="mr-2 rounded-xl border border-purple-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-purple-400/10 hover:border-purple-300/60">🃏 자원 카드</button>
                     <button id="openTrade" class="trade-action rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 text-sm font-black text-slate-950 shadow-md transition-transform hover:scale-105">🤝 무역 제안</button>
                 </div>
             </div>
@@ -261,6 +254,19 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             <div class="rounded-2xl p-5 glass">
                 <h2 class="font-black text-white">📤 보낸 무역 제안</h2>
                 <div id="outgoing" class="mt-4 space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
+            </div>
+        </section>
+
+        <section class="rounded-2xl p-5 glass">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h2 class="font-black text-white">📈 국제 자원 시장</h2>
+                    <p class="mt-1 text-xs text-sky-100/55">체결된 거래의 단가 흐름입니다.</p>
+                </div>
+                <select id="marketSelect" class="rounded-lg border border-sky-400/30 px-3 py-2 text-sm bg-slate-900/80 backdrop-blur outline-none"></select>
+            </div>
+            <div class="chartbox mt-4">
+                <canvas id="marketChart"></canvas>
             </div>
         </section>
 
@@ -303,101 +309,22 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
 </main>
 
 <dialog id="tradeModal" class="dialog w-[min(92vw,520px)] rounded-2xl p-0">
-    <!-- 새 거래 신청 창의 내용만 구성한다. -->
     <div class="p-6">
-        <!-- 거래 신청 제목과 닫기 버튼을 표시한다. -->
         <div class="flex items-center justify-between">
-            <!-- 거래 신청 제목을 표시한다. -->
-            <h2 class="text-xl font-black text-white">새 거래 신청</h2>
-            <!-- 기존 모달과 동일한 닫기 동작을 제공한다. -->
+            <h2 class="text-xl font-black text-white">새 무역 제안</h2>
             <button onclick="tradeModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
         </div>
-        <!-- 거래 신청의 목적을 안내한다. -->
-        <p class="mt-1 text-sm text-sky-100/60">상대방에게 거래 신청을 보내고, 상대방이 승낙하면 거래 창이 열립니다.</p>
-        <!-- 거래 상대를 선택한다. -->
-        <label class="mt-5 block text-sm font-bold text-sky-100">거래 상대
-            <select id="buyer" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select>
-        </label>
-        <!-- 거래 신청 오류를 표시한다. -->
-        <p id="tradeError" class="mt-3 min-h-5 text-sm text-rose-300 font-bold"></p>
-        <!-- 거래 신청을 전송한다. -->
-        <button id="sendTrade" class="trade-action mt-3 w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">거래 신청 보내기</button>
-    </div>
-</dialog>
-
-<dialog id="tradeRequestModal" class="dialog w-[min(92vw,500px)] rounded-2xl p-0">
-    <!-- 상대방이 보낸 거래 신청을 실시간으로 승낙하거나 거절하는 창이다. -->
-    <div class="p-6">
-        <!-- 거래 신청 알람 제목을 표시한다. -->
-        <div class="flex items-center justify-between">
-            <!-- 알람 아이콘과 제목을 표시한다. -->
-            <h2 class="text-xl font-black text-white">🔔 거래 신청</h2>
-            <!-- 알람 창을 닫는 버튼을 제공한다. -->
-            <button onclick="tradeRequestModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
-        </div>
-        <!-- 신청자의 기본 정보를 표시한다. -->
-        <div id="tradeRequestInfo" class="mt-4 rounded-2xl border border-cyan-300/20 bg-slate-900/60 p-4"></div>
-        <!-- 거래 신청을 거절하거나 승낙한다. -->
-        <div class="mt-4 grid grid-cols-2 gap-3">
-            <!-- 거래 신청을 거절한다. -->
-            <button id="tradeRequestReject" class="rounded-xl bg-rose-500 px-4 py-3 font-black text-white shadow-md transition hover:bg-rose-400">거절</button>
-            <!-- 거래 신청을 승낙하고 실제 거래 창으로 이동한다. -->
-            <button id="tradeRequestAccept" class="rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">승낙하고 거래 창 열기</button>
-        </div>
-    </div>
-</dialog>
-
-<dialog id="tradeSessionModal" class="dialog w-[min(96vw,980px)] rounded-2xl p-0">
-    <!-- 메이플스토리와 유사한 양쪽 교환 창을 구성한다. -->
-    <div class="p-5 sm:p-6">
-        <!-- 거래 상대와 거래 취소 버튼을 표시한다. -->
-        <div class="flex items-center justify-between gap-3">
-            <!-- 거래 창 제목을 표시한다. -->
-            <div>
-                <!-- 거래 창의 상단 설명을 표시한다. -->
-                <p class="text-xs font-bold tracking-[.2em] text-cyan-200/70">PLAYER TRADE</p>
-                <!-- 실제 거래 상대를 표시한다. -->
-                <h2 id="tradeSessionTitle" class="mt-1 text-xl font-black text-white">실시간 거래</h2>
+        <p class="mt-1 text-sm text-sky-100/60">내 자원을 다른 국가에 판매합니다.</p>
+        <div class="mt-5 grid gap-4">
+            <label class="text-sm font-bold text-sky-100">거래 상대<select id="buyer" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
+            <label class="text-sm font-bold text-sky-100">판매 자원<select id="item" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="text-sm font-bold text-sky-100">수량<input id="quantity" type="number" min="1" value="1" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400"></label>
+                <label class="text-sm font-bold text-sky-100">총 거래 금액 (국고)<input id="price" type="number" min="1" value="100" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400"></label>
             </div>
-            <!-- 거래를 취소하는 버튼을 제공한다. -->
-            <button id="tradeSessionCancelTop" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
         </div>
-        <!-- 양쪽 플레이어의 상태와 교환 내용을 표시한다. -->
-        <div class="mt-4 grid gap-4 lg:grid-cols-2">
-            <!-- 내 거래 영역이다. -->
-            <section class="trade-offer-card rounded-2xl p-4">
-                <!-- 내 기본 정보를 표시한다. -->
-                <div id="tradeSelfInfo"></div>
-                <!-- 내가 상대에게 줄 자원과 국고를 선택한다. -->
-                <div class="mt-4">
-                    <h3 class="font-black text-cyan-100">내가 줄 것</h3>
-                    <div id="tradeSelfOfferInputs" class="mt-3 grid grid-cols-2 gap-2"></div>
-                </div>
-                <!-- 내 수락 상태를 표시한다. -->
-                <div id="tradeSelfAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
-            </section>
-            <!-- 상대방 거래 영역이다. -->
-            <section class="trade-offer-card rounded-2xl p-4">
-                <!-- 상대방의 기본 정보를 표시한다. -->
-                <div id="tradeOpponentInfo"></div>
-                <!-- 상대방이 주는 자원과 국고를 실시간으로 표시한다. -->
-                <div class="mt-4">
-                    <h3 class="font-black text-cyan-100">상대방이 줄 것</h3>
-                    <div id="tradeOpponentOffer" class="mt-3 grid grid-cols-2 gap-2"></div>
-                </div>
-                <!-- 상대방의 수락 상태를 표시한다. -->
-                <div id="tradeOpponentAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
-            </section>
-        </div>
-        <!-- 양쪽 모두 수락해야 거래가 체결된다는 안내를 표시한다. -->
-        <p id="tradeSessionHint" class="mt-4 text-center text-xs text-sky-100/60">양쪽 모두 수락 버튼을 눌러야 거래가 체결됩니다. 거래 내용을 바꾸면 수락 상태가 다시 해제됩니다.</p>
-        <!-- 거래 수락과 취소 버튼을 배치한다. -->
-        <div class="mt-4 grid grid-cols-2 gap-3">
-            <!-- 현재 사용자의 수락 상태를 토글한다. -->
-            <button id="tradeSessionAccept" class="rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">거래 수락</button>
-            <!-- 거래를 취소한다. -->
-            <button id="tradeSessionCancel" class="rounded-xl bg-slate-700 px-4 py-3 font-black text-white shadow-md transition hover:bg-rose-500">거래 취소</button>
-        </div>
+        <p id="tradeError" class="mt-3 min-h-5 text-sm text-rose-300 font-bold"></p>
+        <button id="sendTrade" class="trade-action mt-3 w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">제안 보내기</button>
     </div>
 </dialog>
 
@@ -435,29 +362,6 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
         </div>
         <p class="mt-2 text-sm text-sky-100/65">노동력 100을 사용해 자원을 얻습니다. 노동력 100당 광물 30 · 수자원 10 · 기술 5 · 첨단 1</p>
         <div class="mt-4 grid gap-2" id="convertChoices"></div>
-    </div>
-</dialog>
-
-<!-- 자원 카드 구매와 보유 현황을 표시하는 모달을 추가한다. -->
-<dialog id="resourceCardModal" class="dialog w-[min(94vw,760px)] rounded-2xl p-0">
-    <!-- 자원 카드 모달 내부의 여백과 구조를 기존 모달 스타일과 동일하게 유지한다. -->
-    <div class="p-6">
-        <!-- 모달 제목과 닫기 버튼을 배치한다. -->
-        <div class="flex justify-between items-start">
-            <!-- 자원 카드 시장 제목을 표시한다. -->
-            <div>
-                <!-- 자원 카드 영역의 상단 분류 문구를 표시한다. -->
-                <p class="text-xs font-bold text-purple-200">RESOURCE CARD MARKET</p>
-                <!-- 자원 카드 구매 제목을 표시한다. -->
-                <h2 class="mt-1 text-xl font-black text-white">자원 카드</h2>
-                <!-- 카드 구매 후 1분마다 자원이 자동 생산된다는 안내를 표시한다. -->
-                <p class="text-sm text-sky-100/60 mt-1">필요 자원을 지불하고 카드를 구매하면 1분마다 자원이 자동 생산됩니다.</p>
-            </div>
-            <!-- 기존 모달과 동일한 닫기 동작을 제공한다. -->
-            <button onclick="resourceCardModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
-        </div>
-        <!-- 자원 카드 목록을 동적으로 렌더링할 영역을 만든다. -->
-        <div id="resourceCardList" class="mt-5 grid gap-3 sm:grid-cols-2"></div>
     </div>
 </dialog>
 
@@ -532,19 +436,6 @@ import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,where,onSnapshot,
 const firebaseConfig={apiKey:'AIzaSyCyB8O09VREQ22xvZSXqFIRRXSUc9QZYag',authDomain:'tradesite-9fbbe.firebaseapp.com',projectId:'tradesite-9fbbe',storageBucket:'tradesite-9fbbe.appspot.com',messagingSenderId:'554776960112',appId:'1:554776960112:web:e448da0fba0ef8f498e8b5'};
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const R=[['labor','노동력','👷'],['mineral','광물자원','⛏️'],['water','수자원','💧'],['technology','기술자원','💡'],['advanced','첨단자원','🧬']];
-// 자원 카드별 구매 비용과 1분 생산량을 정의한다.
-const RESOURCE_CARD_DEFINITIONS=[
-    // 노동력 1000을 지불하면 노동력 100을 생산하는 카드를 정의한다.
-    {key:'labor',name:'노동력 카드',icon:'👷',costResource:'labor',cost:1000,outputResource:'labor',output:100},
-    // 광물자원 700을 지불하면 광물자원 70을 생산하는 카드를 정의한다.
-    {key:'mineral',name:'광물 카드',icon:'⛏️',costResource:'mineral',cost:700,outputResource:'mineral',output:70},
-    // 사용자가 명시한 효과대로 수자원 카드가 1분마다 광물자원 50을 생산하도록 정의한다.
-    {key:'water',name:'수자원 카드',icon:'💧',costResource:'water',cost:500,outputResource:'mineral',output:50},
-    // 기술자원 400을 지불하면 기술자원 40을 생산하는 카드를 정의한다.
-    {key:'technology',name:'기술자원 카드',icon:'💡',costResource:'technology',cost:400,outputResource:'technology',output:40},
-    // 첨단자원 200을 지불하면 첨단자원 20을 생산하는 카드를 정의한다.
-    {key:'advanced',name:'첨단자원 카드',icon:'🧬',costResource:'advanced',cost:200,outputResource:'advanced',output:20}
-];
 
 const COUNTRIES=[
 ['대한민국','🇰🇷',36,128,[1200,420,270,330,210]],['일본','🇯🇵',36,138,[1050,350,240,310,200]],['중국','🇨🇳',35,104,[1750,950,480,370,190]],['인도','🇮🇳',22,79,[2000,480,360,280,130]],['베트남','🇻🇳',16,108,[1800,540,420,190,75]],['인도네시아','🇮🇩',-2,118,[1650,760,510,200,90]],['방글라데시','🇧🇩',24,90,[1850,260,230,150,65]],
@@ -562,7 +453,7 @@ function assignCountry(used=[]){
 }
 
 const labels=Object.fromEntries(R.map(x=>[x[0],x[1]])); const icon=Object.fromEntries(R.map(x=>[x[0],x[2]]));
-const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],rows=[],chart,unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null,activeTradeId='',pendingTradeRequestId='',knownTradeRequests=new Set(),finalizingTradeIds=new Set();
+const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],rows=[],chart,unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null;
 const fmt=n=>new Intl.NumberFormat('ko-KR').format(n||0); const enabled=()=>config.is_trading_active===true;
 
 let currentCountVals = {};
@@ -727,7 +618,7 @@ async function join(name,teacher=false,country=''){
     $('quickChat').classList.toggle('hidden',teacher);
     $('myNationBanner').classList.toggle('hidden',teacher);
     $('myNationName').textContent=teacher?'':((current.countryFlag||country?.flag||'🌐')+' '+(current.country||country?.name||name));
-    $('myNickname').textContent=teacher?'':('닉네임: '+(current.displayName||name)+' · 출석번호 '+(current.studentNo||$('numberInput').value.trim()||'미등록')+' · '+(current.classIdentity||identity.label));
+    $('myNickname').textContent=teacher?'':('닉네임: '+(current.displayName||name)+' · '+(current.classIdentity||identity.label));
     $('nationName').textContent=teacher?room.name+' · 교사':(current.countryFlag||country?.flag||'🌐')+' '+(current.country||country?.name||name);
     
     initMap();watch();startHeartbeat()
@@ -788,7 +679,7 @@ function renderPlayerList(){
         return `<div class="flex items-center gap-2 rounded-xl border p-2 transition hover:bg-slate-800/50 ${p.id===uid?'border-cyan-300/60 bg-cyan-900/40':'border-sky-400/15 bg-slate-900/30'}">
             <button onclick="window.focusNation('`+p.id+`')" class="flex min-w-0 flex-1 items-center gap-2 text-left hover:opacity-80">
                 <span class="text-xl">${safe(p.countryFlag||'🌐')}</span>
-                <span class="min-w-0"><b class="block truncate text-sm text-sky-50">${safe(p.country||p.displayName)}</b><small class="block truncate text-sky-100/60">${safe(p.displayName)} · 출석번호 ${safe(p.studentNo||'미등록')} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
+                <span class="min-w-0"><b class="block truncate text-sm text-sky-50">${safe(p.country||p.displayName)}</b><small class="block truncate text-sky-100/60">${safe(p.displayName)} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
             </button>
             <button onclick="window.openChat('`+p.id+`')" class="rounded-lg bg-cyan-400/15 px-2 py-1 text-xs hover:bg-cyan-400/30 transition shadow-sm" title="1:1 채팅">💬</button>
             <span class="h-2 w-2 rounded-full shadow-sm ${isActive?'bg-emerald-400':'bg-slate-600'}"></span>
@@ -809,7 +700,7 @@ function renderMapPlayers(){
         let node=document.createElement('div');
         node.style.cssText = 'min-width:240px; color:#eaf2ff; line-height: 1.4;';
         node.innerHTML=`<b style="font-size:16px; color:#5de0e6;">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br>
-        <span style="font-size: 13px; color:#9fb0c9;">${safe(p.displayName)} (${safe(p.classIdentity||'')}) · 출석번호 ${safe(p.studentNo||'미등록')} · 국가 레벨 ${lv}</span><br>
+        <span style="font-size: 13px; color:#9fb0c9;">${safe(p.displayName)} (${safe(p.classIdentity||'')}) · 국가 레벨 ${lv}</span><br>
         <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; font-weight:bold;">
             <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">노동 ${fmt(p.inventory?.labor)}</div>
             <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">광물 ${fmt(p.inventory?.mineral)}</div>
@@ -858,7 +749,7 @@ function startHeartbeat(){
     pingPresence();collectIncome();
     heartbeatTimer=setInterval(pingPresence,10000);
     if(!refreshTimer)refreshTimer=setInterval(()=>{
-        renderTeacherChats();renderTeacherPlayers();renderIncomePanel();collectIncome();processLevelUpReward();
+        renderTeacherChats();renderTeacherPlayers();renderIncomePanel();collectIncome();
     },1000);
     window.addEventListener('focus',pingPresence);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)pingPresence()})
@@ -911,7 +802,7 @@ function renderTeacherPlayers(){
     let students=players.filter(p=>p.role!=='teacher');
     $('teacherPlayers').innerHTML=students.length?students.map(p=>`<div class="flex flex-col gap-2 rounded-lg border border-yellow-300/15 bg-slate-900/50 p-3 text-sm transition hover:bg-slate-800">
         <div class="flex justify-between items-start">
-            <span><b class="text-white">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br><small class="text-yellow-100/70">${safe(p.displayName)} · 출석번호 ${safe(p.studentNo||'미등록')} · ${safe(p.classIdentity||'')}</small></span>
+            <span><b class="text-white">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br><small class="text-yellow-100/70">${safe(p.displayName)} · ${safe(p.classIdentity||'')}</small></span>
             <button onclick="window.resetStudent('`+p.id+`')" class="rounded bg-rose-500/80 px-2 py-1 text-xs font-bold hover:bg-rose-500 transition text-white shadow-sm">학생 초기화</button>
         </div>
         <div class="text-xs text-yellow-100/50 grid grid-cols-2 gap-1 mt-1">
@@ -995,99 +886,6 @@ window.convertResource=async(k,q)=>{
     note('국내 자원 교환을 완료했습니다.')
 };
 
-// 학생 문서에 저장된 자원 카드 보유 수를 읽는다.
-function getResourceCardCounts(player=me){
-    // 기존 계정에 카드 데이터가 없어도 빈 객체로 정상 동작하도록 처리한다.
-    return {...(player.resourceCards||{})};
-}
-
-// 현재 자원과 카드 보유량에 맞춰 자원 카드 시장을 렌더링한다.
-function renderResourceCardMarket(){
-    // 모달이 아직 존재하지 않으면 렌더링을 중단한다.
-    if(!$('resourceCardList'))return;
-    // 현재 학생의 자원과 카드 보유량을 가져온다.
-    const inventory=me.inventory||{};
-    const cards=getResourceCardCounts(me);
-    // 정의된 다섯 종류의 카드를 모두 화면에 표시한다.
-    $('resourceCardList').innerHTML=RESOURCE_CARD_DEFINITIONS.map(card=>{
-        // 현재 카드의 구매 가능 여부를 확인한다.
-        const canBuy=(inventory[card.costResource]||0)>=card.cost;
-        // 현재 카드의 보유 장수를 확인한다.
-        const owned=cards[card.key]||0;
-        // 카드가 실제로 생산하는 자원의 이름을 확인한다.
-        const outputName=labels[card.outputResource]||card.outputResource;
-        // 카드 하나가 1분마다 생산하는 양을 안내한다.
-        const outputText=`1분마다 ${outputName} +${fmt(card.output)}`;
-        // 카드의 구매 조건과 보유량을 함께 표시한다.
-        return `<div class="rounded-2xl border border-purple-300/20 bg-slate-900/60 p-4 shadow-md transition hover:border-purple-300/50 hover:bg-slate-800/80">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="font-black text-lg text-white">${card.icon} ${card.name}</p>
-                    <p class="mt-1 text-xs text-sky-100/65">${outputText}</p>
-                </div>
-                <span class="rounded-full bg-purple-400/15 px-2 py-1 text-xs font-black text-purple-200">보유 ${fmt(owned)}</span>
-            </div>
-            <div class="mt-4 flex items-center justify-between gap-3">
-                <span class="text-sm font-bold text-yellow-200">${labels[card.costResource]} ${fmt(card.cost)} 필요</span>
-                <button onclick="window.buyResourceCard('${card.key}')" ${canBuy?'':'disabled'} class="rounded-xl bg-purple-400 px-3 py-2 text-sm font-black text-slate-950 shadow-md transition hover:bg-purple-300">구매</button>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// 선택한 자원 카드의 비용을 차감하고 기존 학생 문서에 카드 보유량을 저장한다.
-window.buyResourceCard=async cardKey=>{
-    // 교사는 학생용 자원 카드를 구매할 수 없도록 한다.
-    if(me.role==='teacher')return note('학생 계정에서만 자원 카드를 구매할 수 있습니다.',true);
-    // 요청된 카드 정의를 찾는다.
-    const card=RESOURCE_CARD_DEFINITIONS.find(item=>item.key===cardKey);
-    // 잘못된 카드 키는 처리하지 않는다.
-    if(!card)return note('자원 카드를 찾을 수 없습니다.',true);
-    // 현재 화면의 자원으로 구매 가능 여부를 빠르게 확인한다.
-    if((me.inventory?.[card.costResource]||0)<card.cost)return note(`${labels[card.costResource]}이(가) ${fmt(card.cost)} 이상 필요합니다.`,true);
-    try{
-        // 기존 players 문서만 트랜잭션으로 갱신하여 Firebase 설정과 컬렉션 구조는 변경하지 않는다.
-        await runTransaction(db,async tx=>{
-            // 현재 학생의 기존 플레이어 문서를 지정한다.
-            const ref=doc(db,`rooms/${roomId}/players/${uid}`);
-            // 최신 학생 문서를 읽는다.
-            const snap=await tx.get(ref);
-            // 학생 문서가 없으면 구매를 중단한다.
-            if(!snap.exists())throw Error('학생 정보를 찾을 수 없습니다.');
-            // 최신 학생 데이터를 가져온다.
-            const data=snap.data();
-            // 최신 자원과 카드 보유량을 복사한다.
-            const inventory={...(data.inventory||{})};
-            const resourceCards={...(data.resourceCards||{})};
-            // 동시 구매로 최신 자원이 부족해졌다면 구매를 중단한다.
-            if((inventory[card.costResource]||0)<card.cost)throw Error(`${labels[card.costResource]}이(가) 부족합니다.`);
-            // 구매 비용만큼 해당 자원을 차감한다.
-            inventory[card.costResource]-=card.cost;
-            // 구매한 카드의 보유 장수를 하나 증가시킨다.
-            resourceCards[card.key]=(resourceCards[card.key]||0)+1;
-            // 기존 학생 문서에 자원과 카드 정보만 갱신한다.
-            tx.update(ref,{inventory,resourceCards});
-        });
-        // 구매 완료 알림을 표시한다.
-        note(`${card.name}을(를) 구매했습니다.`);
-        // 구매 직후 카드 목록을 다시 그린다.
-        renderResourceCardMarket();
-    }catch(e){
-        // 구매 실패 원인을 기존 토스트 UI로 표시한다.
-        note('자원 카드 구매 실패: '+e.message,true);
-    }
-};
-
-// 기존 화면의 자원 카드 버튼으로 구매 모달을 연다.
-$('resourceCardBtn').onclick=()=>{
-    // 교사 화면에서는 학생용 구매 기능을 사용하지 않는다.
-    if(me.role==='teacher')return note('학생 계정에서 자원 카드를 구매할 수 있습니다.',true);
-    // 현재 자원과 보유 카드로 시장을 갱신한다.
-    renderResourceCardMarket();
-    // 자원 카드 구매 모달을 연다.
-    $('resourceCardModal').showModal();
-};
-
 $('toggleIncome').onclick=async()=>{
     if(config.teacherUid!==uid)return;
     await updateDoc(doc(db,`rooms/${roomId}/config/settings`),{income_active:config.income_active!==true})
@@ -1108,24 +906,9 @@ async function collectIncome(){
             
             let v=d.inventory||{},amount=Math.max(1,Math.floor(v.labor*.01+v.mineral*.05+v.water*.07+v.technology*(.1/60)+v.advanced*(.2/60)));
             let inv={...(d.inventory||{})},laborGain=Math.max(1,Math.floor((d.balance||0)*.1));
-            // 기존 자동 수입은 그대로 유지하고 자원 카드의 1분 생산량을 계산한다.
-            let resourceCards={...(d.resourceCards||{})},cardGains={labor:0,mineral:0,water:0,technology:0,advanced:0};
-            // 보유한 카드 수와 카드별 생산량을 곱해 자동 생산량을 계산한다.
-            RESOURCE_CARD_DEFINITIONS.forEach(card=>{
-                // 현재 카드의 보유 장수를 가져온다.
-                const owned=resourceCards[card.key]||0;
-                // 카드가 생산하는 자원에 생산량을 누적한다.
-                cardGains[card.outputResource]=(cardGains[card.outputResource]||0)+(owned*card.output);
-            });
-            // 기존 자동 노동력 증가량을 유지한다.
+            
             inv.labor=(inv.labor||0)+laborGain;
-            // 자원 카드에서 생산된 자원을 인벤토리에 추가한다.
-            Object.entries(cardGains).forEach(([resourceKey,gain])=>{
-                // 생산량이 있는 자원만 실제로 추가한다.
-                if(gain>0)inv[resourceKey]=(inv[resourceKey]||0)+gain;
-            });
-            // 기존 학생 문서에 자동 수입과 카드 생산량을 함께 저장한다.
-            tx.update(ref,{balance:(d.balance||0)+amount,inventory:inv,resourceCards,lastIncome:serverTimestamp(),lastIncomeAmount:amount,lastLaborGrowth: laborGain,lastResourceCardGains:cardGains})
+            tx.update(ref,{balance:(d.balance||0)+amount,inventory:inv,lastIncome:serverTimestamp(),lastIncomeAmount:amount,lastLaborGrowth:laborGain})
         });
     }catch(e){
         console.error('자동 수입 실패',e);
@@ -1155,22 +938,10 @@ $('grantSubmit').onclick=async()=>{
 };
 
 function incomeInfo(){
-    // 기존 자동 국고 수입 계산에 사용하는 자원 값을 가져온다.
     let v=me.inventory||{},labor=v.labor||0,mineral=v.mineral||0,water=v.water||0,technology=v.technology||0,advanced=v.advanced||0;
-    // 현재 보유 카드가 생산할 자원량을 계산한다.
-    const resourceCardGains={labor:0,mineral:0,water:0,technology:0,advanced:0};
-    // 보유 카드 수에 카드별 1분 생산량을 곱한다.
-    RESOURCE_CARD_DEFINITIONS.forEach(card=>{
-        // 현재 카드의 보유 장수를 읽는다.
-        const owned=getResourceCardCounts(me)[card.key]||0;
-        // 해당 카드의 생산량을 생산 자원에 누적한다.
-        resourceCardGains[card.outputResource]=(resourceCardGains[card.outputResource]||0)+(owned*card.output);
-    });
-    // 기존 자동 국고 수입과 카드 생산량을 함께 반환한다.
     return {
         total:Math.max(1,Math.floor(labor*.01+mineral*.05+water*.07+technology*(.1/60)+advanced*(.2/60))),
-        laborGrowth:Math.max(1,Math.floor((me.balance||0)*.1)),
-        resourceCardGains
+        laborGrowth:Math.max(1,Math.floor((me.balance||0)*.1))
     };
 }
 function renderIncomePanel(){
@@ -1179,7 +950,7 @@ function renderIncomePanel(){
     $('incomeStatus').textContent=active?'ON · 1분 자동 지급':'OFF · 교사가 중지함';
     $('incomeTimerText').textContent=active?`다음 지급까지 ${Math.ceil(remain/1000)}초`:'자동 수입이 꺼져 있습니다.';
     bar.style.width=active?`${Math.max(0,Math.min(100,(1-remain/60000)*100))}%`:'0%';
-    $('incomeEstimate').textContent=`1분 예상 +₩${fmt(inf.total)} · 노동력 +${fmt(inf.laborGrowth)} (국고의 10%) · 카드 ${Object.entries(inf.resourceCardGains).filter(([,gain])=>gain>0).map(([key,gain])=>`${labels[key]} +${fmt(gain)}`).join(' · ')||'없음'}`;
+    $('incomeEstimate').textContent=`1분 예상 +₩${fmt(inf.total)} · 노동력 +${fmt(inf.laborGrowth)} (국고의 10%)`;
 }
 
 function renderMapSide(){
@@ -1203,7 +974,7 @@ function watch(){
         $('toggleIncome').className = config.income_active===false?'rounded-xl bg-emerald-600 px-4 py-2.5 font-black text-white shadow-md transition hover:bg-emerald-500':'rounded-xl bg-rose-600 px-4 py-2.5 font-black text-white shadow-md transition hover:bg-rose-500';
     }));
     unsubs.push(onSnapshot(doc(db,`rooms/${roomId}/players/${uid}`),s=>{
-        me=s.data()||{};renderMe();renderIncomePanel();fillForm();renderResourceCardMarket();processLevelUpReward();
+        me=s.data()||{};renderMe();renderIncomePanel();fillForm();
     }));
     unsubs.push(onSnapshot(collection(db,`rooms/${roomId}/players`),s=>{
         players=s.docs.map(d=>({id:d.id,...d.data()}));
@@ -1258,56 +1029,6 @@ function levelFor(inv, country){
         if(inv.labor>=q[0]&&inv.mineral>=q[1]&&inv.water>=q[2]&&inv.technology>=q[3]&&inv.advanced>=q[4])level=i+1;
     }
     return {level,requirements}
-}
-
-// 레벨이 새로 상승한 경우 현재 보유 자원의 30%를 한 번만 추가한다.
-async function processLevelUpReward(){
-    // 로그인하지 않은 교사나 방이 없는 상태에서는 학생 레벨 보상을 처리하지 않는다.
-    if(!roomId||!uid||me.role==='teacher')return;
-    // 여러 실시간 갱신이 동시에 들어와도 동일한 트랜잭션을 중복 실행하지 않는다.
-    try{
-        await runTransaction(db,async tx=>{
-            // 현재 학생의 최신 문서를 읽는다.
-            const ref=doc(db,`rooms/${roomId}/players/${uid}`);
-            const snap=await tx.get(ref);
-            // 학생 문서가 없으면 처리하지 않는다.
-            if(!snap.exists())return;
-            // 최신 학생 정보를 가져온다.
-            const data=snap.data();
-            // 현재 인벤토리를 복사한다.
-            const inventory={...(data.inventory||{})};
-            // 현재 실제 레벨을 계산한다.
-            const currentLevel=levelFor(inventory,data.country||'').level;
-            // 이전에 보상을 지급한 마지막 레벨을 읽는다.
-            const storedLevel=Number.isInteger(data.lastLevelRewarded)?data.lastLevelRewarded:currentLevel;
-            // 아직 레벨 상승이 없다면 기준 레벨만 기록한다.
-            if(currentLevel<=storedLevel){
-                if(data.lastLevelRewarded===undefined)tx.update(ref,{lastLevelRewarded:currentLevel});
-                return;
-            }
-            // 새로 달성한 레벨마다 현재 자원의 30%를 지급한다.
-            let rewardedLevel=storedLevel;
-            let rewardedCount=0;
-            while(rewardedLevel<currentLevel&&rewardedLevel<8){
-                // 현재 각 자원의 30%를 계산한다.
-                Object.keys(inventory).forEach(resourceKey=>{
-                    // 숫자로 저장된 자원만 보너스 대상으로 처리한다.
-                    if(typeof inventory[resourceKey]==='number')inventory[resourceKey]+=Math.floor(inventory[resourceKey]*0.3);
-                });
-                // 이번 레벨의 보상을 지급했다고 기록한다.
-                rewardedLevel++;
-                rewardedCount++;
-                // 보너스 때문에 다음 레벨까지 올라간 경우에도 다음 레벨 보상을 계산한다.
-                const afterRewardLevel=levelFor(inventory,data.country||'').level;
-                if(afterRewardLevel<=rewardedLevel)break;
-            }
-            // 보상 지급 결과를 기존 학생 문서에 저장한다.
-            tx.update(ref,{inventory,lastLevelRewarded:rewardedLevel,lastLevelRewardAt:serverTimestamp(),lastLevelRewardCount:rewardedCount});
-        });
-    }catch(error){
-        // 실시간 보상 처리 실패는 기존 게임 화면을 막지 않도록 콘솔에만 기록한다.
-        console.error('레벨업 자원 보상 처리 실패',error);
-    }
 }
 
 window.showResourceLeaders = (resKey) => {
@@ -1372,365 +1093,106 @@ function fillForm(){
 }
 
 function safe(t=''){let d=document.createElement('div');d.textContent=t;return d.innerHTML}
-function getTradeParticipantId(trade,side){
-    // 새 거래 스키마와 이전 거래 스키마를 모두 읽을 수 있도록 참가자 아이디를 반환한다.
-    return side==='requester'?(trade.requesterId||trade.sellerId):(trade.receiverId||trade.buyerId);
-}
-
-function getTradeParticipantName(trade,side){
-    // 새 거래 스키마와 이전 거래 스키마를 모두 읽을 수 있도록 참가자 이름을 반환한다.
-    return side==='requester'?(trade.requesterName||trade.sellerName||'학생'):(trade.receiverName||trade.buyerName||'학생');
-}
-
-function emptyTradeOffer(){
-    // 거래 제안의 기본값으로 국고와 다섯 자원을 모두 0으로 만든다.
-    return {balance:0,labor:0,mineral:0,water:0,technology:0,advanced:0};
-}
-
-function normalizeTradeOffer(offer){
-    // Firestore에 없는 필드가 있어도 항상 숫자로 사용할 수 있게 정규화한다.
-    const source=offer||{};
-    return {balance:Math.max(0,Math.floor(Number(source.balance)||0)),labor:Math.max(0,Math.floor(Number(source.labor)||0)),mineral:Math.max(0,Math.floor(Number(source.mineral)||0)),water:Math.max(0,Math.floor(Number(source.water)||0)),technology:Math.max(0,Math.floor(Number(source.technology)||0)),advanced:Math.max(0,Math.floor(Number(source.advanced)||0))};
-}
-
-function tradeOfferEntries(){
-    // 거래 창에서 보여 줄 국고와 다섯 자원의 표시 순서를 고정한다.
-    return [['balance','국고','₩'],...R.map(([key,name,resourceIcon])=>[key,name,resourceIcon])];
-}
-
-function renderTradeParticipantInfo(elementId,player,title){
-    // 거래 상대의 국고, 자원, 레벨, 출석번호를 한 번에 표시한다.
-    const element=$(elementId);
-    if(!element||!player)return;
-    const currentLevel=levelFor(player.inventory||{},player.country||'').level;
-    element.innerHTML=`<div class="flex items-start justify-between gap-3"><div><p class="text-xs font-bold text-cyan-200/70">${safe(title)}</p><p class="mt-1 text-lg font-black text-white">${safe(player.countryFlag||'🌐')} ${safe(player.country||player.displayName||'학생')}</p><p class="mt-1 text-xs text-sky-100/60">${safe(player.displayName||'')} · 출석번호 ${safe(player.studentNo||'미등록')} · ${safe(player.classIdentity||'')}</p></div><span class="rounded-xl bg-yellow-300 px-3 py-2 text-sm font-black text-slate-950">Lv.${currentLevel}</span></div><div class="mt-3 grid grid-cols-2 gap-2 text-xs font-bold"><div class="rounded-lg bg-yellow-300/10 p-2 text-yellow-200">국고 ₩${fmt(player.balance)}</div><div class="rounded-lg bg-cyan-300/10 p-2 text-cyan-100">노동 ${fmt(player.inventory?.labor)}</div><div class="rounded-lg bg-cyan-300/10 p-2 text-cyan-100">광물 ${fmt(player.inventory?.mineral)}</div><div class="rounded-lg bg-cyan-300/10 p-2 text-cyan-100">수자원 ${fmt(player.inventory?.water)}</div><div class="rounded-lg bg-cyan-300/10 p-2 text-cyan-100">기술 ${fmt(player.inventory?.technology)}</div><div class="rounded-lg bg-cyan-300/10 p-2 text-cyan-100">첨단 ${fmt(player.inventory?.advanced)}</div></div>`;
-}
-
-function renderTradeSession(trade){
-    // 현재 거래 문서가 실제 거래 창을 열어야 하는 상태인지 확인한다.
-    if(!trade||trade.status!=='negotiating')return;
-    // 현재 거래의 상대방 아이디를 찾는다.
-    const selfId=uid;
-    const selfIsRequester=trade.requesterId===selfId;
-    const opponentId=selfIsRequester?trade.receiverId:trade.requesterId;
-    const selfPlayer=players.find(player=>player.id===selfId)||me;
-    const opponentPlayer=players.find(player=>player.id===opponentId);
-    // 상대방 데이터가 아직 목록에 들어오지 않았다면 다음 실시간 갱신에서 다시 렌더링한다.
-    if(!opponentPlayer)return;
-    // 현재 거래 아이디를 기록한다.
-    activeTradeId=trade.id;
-    // 거래 창의 제목을 갱신한다.
-    $('tradeSessionTitle').textContent=`${opponentPlayer.countryFlag||'🌐'} ${opponentPlayer.country||opponentPlayer.displayName||'학생'}와 거래`;
-    // 양쪽 기본 정보를 갱신한다.
-    renderTradeParticipantInfo('tradeSelfInfo',selfPlayer,'내 정보');
-    renderTradeParticipantInfo('tradeOpponentInfo',opponentPlayer,'상대방 정보');
-    // 현재 양쪽 제안을 읽는다.
-    const selfOffer=normalizeTradeOffer(selfIsRequester?trade.requesterOffer:trade.receiverOffer);
-    const opponentOffer=normalizeTradeOffer(selfIsRequester?trade.receiverOffer:trade.requesterOffer);
-    // 내가 입력할 수 있는 제안 입력창을 생성한다.
-    $('tradeSelfOfferInputs').innerHTML=tradeOfferEntries().map(([key,name,displayIcon])=>{
-        const available=key==='balance'?(selfPlayer.balance||0):(selfPlayer.inventory?.[key]||0);
-        return `<label class="rounded-xl border border-sky-400/15 bg-slate-950/40 p-2 text-xs font-bold text-sky-100"><span>${displayIcon} ${name} <span class="text-sky-100/45">/ ${fmt(available)}</span></span><input data-trade-offer-key="${key}" type="number" min="0" max="${available}" value="${selfOffer[key]}" class="mt-1 w-full rounded-lg border border-sky-400/25 px-2 py-2 text-sm font-black outline-none focus:border-cyan-400"></label>`;
-    }).join('');
-    // 상대방이 제안한 내용을 읽기 전용으로 표시한다.
-    $('tradeOpponentOffer').innerHTML=tradeOfferEntries().map(([key,name,displayIcon])=>`<div class="rounded-xl border border-sky-400/15 bg-slate-950/40 p-2 text-sm font-black text-sky-100"><span>${displayIcon} ${name}</span><strong class="float-right text-cyan-200">${key==='balance'?'₩'+fmt(opponentOffer[key]):fmt(opponentOffer[key])}</strong></div>`).join('');
-    // 내 수락 상태를 파란색 또는 빨간색으로 표시한다.
-    const selfAccepted=selfIsRequester?trade.requesterAccepted===true:trade.receiverAccepted===true;
-    const opponentAccepted=selfIsRequester?trade.receiverAccepted===true:trade.requesterAccepted===true;
-    $('tradeSelfAcceptStatus').innerHTML=selfAccepted?'<span class="trade-accepted-blue">● 수락함</span>':'<span class="trade-not-accepted-red">● 아직 수락하지 않음</span>';
-    $('tradeOpponentAcceptStatus').innerHTML=opponentAccepted?'<span class="trade-accepted-blue">● 상대방 수락함</span>':'<span class="trade-not-accepted-red">● 상대방 미수락</span>';
-    // 현재 수락 상태에 따라 버튼 문구를 변경한다.
-    $('tradeSessionAccept').textContent=selfAccepted?'수락 취소':'거래 수락';
-    // 거래가 완료된 상태에서는 거래 창을 닫는다.
-    if(trade.status==='completed'){
-        $('tradeSessionModal').close();
-        activeTradeId='';
-        note('거래가 완료되었습니다!');
-        return;
-    }
-    // 거래 창이 열려 있지 않다면 실제 거래 창으로 전환한다.
-    if(!$('tradeSessionModal').open)$('tradeSessionModal').showModal();
-}
-
-function renderLegacyTradeCard(trade,incoming){
-    // 기존 거래 데이터도 기존 화면에서 사라지지 않도록 간단한 기록 카드로 표시한다.
-    const total=(trade.totalPrice||trade.quantity*trade.unitPrice||0);
-    return `<div class="rounded-xl border border-sky-400/20 bg-slate-900/60 p-4 shadow-md"><div class="flex justify-between gap-3"><div><p class="font-black text-lg text-white">${icon[trade.itemId]||'📦'} ${labels[trade.itemId]||trade.itemId||'자원'} <span class="text-cyan-300 ml-1">× ${fmt(trade.quantity||0)}</span></p><p class="mt-1 text-xs text-sky-100/70 font-bold">${incoming?'판매: '+safe(trade.sellerName||''):'구매: '+safe(trade.buyerName||'')}</p></div><div class="text-right"><p class="font-black text-yellow-300 text-lg">₩${fmt(total)}</p><p class="mt-1 text-xs font-bold text-emerald-400">기존 거래 기록</p></div></div></div>`;
-}
-
-function renderNewTradeHistoryCard(trade){
-    // 새로운 양방향 거래의 최종 교환 내용을 요약한다.
-    const requesterId=trade.requesterId,requesterName=getTradeParticipantName(trade,'requester'),receiverName=getTradeParticipantName(trade,'receiver');
-    const requesterOffer=normalizeTradeOffer(trade.requesterOffer),receiverOffer=normalizeTradeOffer(trade.receiverOffer);
-    const formatOffer=offer=>tradeOfferEntries().filter(([key])=>offer[key]>0).map(([key,name,displayIcon])=>`${displayIcon} ${name} ${key==='balance'?'₩'+fmt(offer[key]):fmt(offer[key])}`).join(' · ')||'없음';
-    return `<div class="rounded-xl border border-cyan-400/15 bg-slate-900/60 p-4 shadow-md"><div class="flex justify-between gap-3"><div><p class="font-black text-sm text-white">${safe(requesterName)} <span class="text-cyan-300">↔</span> ${safe(receiverName)}</p><p class="mt-2 text-xs text-sky-100/70">${safe(requesterName)}: ${safe(formatOffer(requesterOffer))}</p><p class="mt-1 text-xs text-sky-100/70">${safe(receiverName)}: ${safe(formatOffer(receiverOffer))}</p></div><div class="text-right"><p class="text-xs font-black text-emerald-400">거래 완료</p><p class="mt-1 text-[10px] text-sky-100/45">${safe(requesterId===uid?'내가 신청':'상대가 신청')}</p></div></div></div>`;
-}
-
-async function createTradeRequest(){
-    // 거래소가 열린 상태에서만 새로운 거래 신청을 보낸다.
-    if(!enabled())return note('교사가 무역소를 정지했습니다.',true);
-    // 선택한 상대방을 확인한다.
-    const receiverId=$('buyer').value;
-    const receiver=players.find(player=>player.id===receiverId);
-    // 자기 자신이나 존재하지 않는 상대방에게는 거래 신청을 보낼 수 없다.
-    if(!receiverId||receiverId===uid||!receiver)return $('tradeError').textContent='거래 상대를 선택하세요.';
-    // 거래 신청 문서를 기존 trades 컬렉션에 추가한다.
-    try{
-        await addDoc(collection(db,'trades'),{roomId,type:'player_trade',status:'requested',requesterId:uid,requesterName:me.displayName||'',requesterCountry:me.country||'',requesterFlag:me.countryFlag||'🌐',requesterStudentNo:me.studentNo||'',receiverId,receiverName:receiver.displayName||'',receiverCountry:receiver.country||'',receiverFlag:receiver.countryFlag||'🌐',receiverStudentNo:receiver.studentNo||'',requesterOffer:emptyTradeOffer(),receiverOffer:emptyTradeOffer(),requesterAccepted:false,receiverAccepted:false,createdAt:serverTimestamp()});
-        $('tradeModal').close();
-        note(`${receiver.country||receiver.displayName}에게 거래 신청을 보냈습니다.`);
-    }catch(error){
-        $('tradeError').textContent='거래 신청 실패: '+error.message;
-    }
-}
-
-async function respondToTradeRequest(tradeId,accept){
-    // 현재 거래 신청 문서를 기준으로 승낙 또는 거절한다.
-    try{
-        await runTransaction(db,async tx=>{
-            // 최신 거래 신청 문서를 읽는다.
-            const tradeRef=doc(db,'trades',tradeId);
-            const tradeSnap=await tx.get(tradeRef);
-            // 이미 처리된 신청은 다시 처리하지 않는다.
-            if(!tradeSnap.exists())throw Error('거래 신청을 찾을 수 없습니다.');
-            const trade=tradeSnap.data();
-            if(trade.receiverId!==uid||trade.status!=='requested')throw Error('이미 처리된 거래 신청입니다.');
-            // 승낙하면 양쪽 거래 창으로 전환하고, 거절하면 종료한다.
-            tx.update(tradeRef,accept?{status:'negotiating',receiverAccepted:false,requesterAccepted:false,acceptedAt:serverTimestamp()}:{status:'rejected',rejectedBy:uid,rejectedAt:serverTimestamp()});
-        });
-        // 알람 창을 닫는다.
-        $('tradeRequestModal').close();
-        pendingTradeRequestId='';
-        // 승낙한 경우 실시간 거래 문서가 갱신되면서 거래 창이 자동으로 열린다.
-        if(accept)note('거래 신청을 승낙했습니다. 거래 창을 준비합니다.');
-        else note('거래 신청을 거절했습니다.');
-    }catch(error){
-        note('거래 신청 처리 실패: '+error.message,true);
-    }
-}
-
-async function updateMyTradeOffer(trade,offerKey,value){
-    // 현재 거래에서 내가 제안할 수 있는 최대 금액 또는 자원량을 계산한다.
-    const selfIsRequester=trade.requesterId===uid;
-    const selfPlayer=players.find(player=>player.id===uid)||me;
-    const available=offerKey==='balance'?(selfPlayer.balance||0):(selfPlayer.inventory?.[offerKey]||0);
-    // 음수와 보유량 초과 입력을 차단한다.
-    const normalized=Math.max(0,Math.min(available,Math.floor(Number(value)||0)));
-    // 현재 제안 값을 읽는다.
-    const currentOffer=normalizeTradeOffer(selfIsRequester?trade.requesterOffer:trade.receiverOffer);
-    currentOffer[offerKey]=normalized;
-    // 거래 내용을 변경하면 양쪽 수락 상태를 다시 미수락으로 바꾼다.
-    const field=selfIsRequester?'requesterOffer':'receiverOffer';
-    await updateDoc(doc(db,'trades',trade.id),{[field]:currentOffer,requesterAccepted:false,receiverAccepted:false,offerChangedAt:serverTimestamp()});
-}
-
-async function toggleTradeAcceptance(){
-    // 현재 거래 문서를 확인한다.
-    if(!activeTradeId)return;
-    try{
-        await runTransaction(db,async tx=>{
-            // 최신 거래 문서를 읽는다.
-            const ref=doc(db,'trades',activeTradeId);
-            const snap=await tx.get(ref);
-            // 거래가 종료되었다면 더 이상 수락 상태를 변경하지 않는다.
-            if(!snap.exists()||snap.data().status!=='negotiating')throw Error('현재 거래를 진행할 수 없습니다.');
-            // 현재 사용자가 어느 쪽 참가자인지 확인한다.
-            const trade=snap.data();
-            const requester=trade.requesterId===uid;
-            const field=requester?'requesterAccepted':'receiverAccepted';
-            // 현재 수락 상태를 반전한다.
-            tx.update(ref,{[field]:!(trade[field]===true),acceptChangedAt:serverTimestamp()});
-        });
-    }catch(error){
-        note('거래 수락 처리 실패: '+error.message,true);
-    }
-}
-
-async function cancelActiveTrade(){
-    // 현재 거래가 존재하는 경우 거래를 취소한다.
-    if(!activeTradeId)return;
-    try{
-        await updateDoc(doc(db,'trades',activeTradeId),{status:'cancelled',cancelledBy:uid,cancelledAt:serverTimestamp()});
-    }catch(error){
-        note('거래 취소 실패: '+error.message,true);
-    }
-}
-
-async function finalizeTrade(tradeId){
-    // 같은 거래의 동시 완료 요청을 한 번만 처리한다.
-    if(finalizingTradeIds.has(tradeId))return;
-    finalizingTradeIds.add(tradeId);
-    try{
-        await runTransaction(db,async tx=>{
-            // 거래 문서와 양쪽 학생 문서를 최신 상태로 읽는다.
-            const tradeRef=doc(db,'trades',tradeId);
-            const tradeSnap=await tx.get(tradeRef);
-            if(!tradeSnap.exists())throw Error('거래를 찾을 수 없습니다.');
-            const trade=tradeSnap.data();
-            if(trade.status!=='negotiating'||trade.requesterAccepted!==true||trade.receiverAccepted!==true)return;
-            // 양쪽 학생 문서를 읽는다.
-            const requesterRef=doc(db,`rooms/${roomId}/players/${trade.requesterId}`);
-            const receiverRef=doc(db,`rooms/${roomId}/players/${trade.receiverId}`);
-            const [requesterSnap,receiverSnap]=await Promise.all([tx.get(requesterRef),tx.get(receiverRef)]);
-            if(!requesterSnap.exists()||!receiverSnap.exists())throw Error('거래 참가자 정보를 찾을 수 없습니다.');
-            // 최신 학생 데이터를 가져온다.
-            const requester=requesterSnap.data();
-            const receiver=receiverSnap.data();
-            // 양쪽 제안을 숫자로 정규화한다.
-            const requesterOffer=normalizeTradeOffer(trade.requesterOffer);
-            const receiverOffer=normalizeTradeOffer(trade.receiverOffer);
-            // 제안한 국고와 자원을 현재 보유량과 비교한다.
-            if(requesterOffer.balance>(requester.balance||0))throw Error('신청자의 국고가 부족합니다.');
-            if(receiverOffer.balance>(receiver.balance||0))throw Error('상대방의 국고가 부족합니다.');
-            for(const resourceKey of R.map(item=>item[0])){
-                if(requesterOffer[resourceKey]>(requester.inventory?.[resourceKey]||0))throw Error(`신청자의 ${labels[resourceKey]}이(가) 부족합니다.`);
-                if(receiverOffer[resourceKey]>(receiver.inventory?.[resourceKey]||0))throw Error(`상대방의 ${labels[resourceKey]}이(가) 부족합니다.`);
-            }
-            // 양쪽 현재 자원을 복사한다.
-            const requesterInventory={...(requester.inventory||{})};
-            const receiverInventory={...(receiver.inventory||{})};
-            // 신청자가 준 자원을 신청자에게서 빼고 상대방에게 더한다.
-            for(const resourceKey of R.map(item=>item[0])){
-                requesterInventory[resourceKey]=(requesterInventory[resourceKey]||0)-requesterOffer[resourceKey]+receiverOffer[resourceKey];
-                receiverInventory[resourceKey]=(receiverInventory[resourceKey]||0)-receiverOffer[resourceKey]+requesterOffer[resourceKey];
-            }
-            // 양쪽 국고도 서로 교환한다.
-            const requesterBalance=(requester.balance||0)-requesterOffer.balance+receiverOffer.balance;
-            const receiverBalance=(receiver.balance||0)-receiverOffer.balance+requesterOffer.balance;
-            // 양쪽 학생 문서와 거래 문서를 한 번에 갱신한다.
-            tx.update(requesterRef,{inventory:requesterInventory,balance:requesterBalance});
-            tx.update(receiverRef,{inventory:receiverInventory,balance:receiverBalance});
-            tx.update(tradeRef,{status:'completed',completedAt:serverTimestamp()});
-        });
-        // 거래가 완료되면 현재 사용자에게 완료 알림을 표시한다.
-        if(activeTradeId===tradeId)note('🤝 양쪽 모두 수락하여 거래가 완료되었습니다!');
-    }catch(error){
-        // 자원 부족 등으로 거래가 실패하면 양쪽 수락을 해제한다.
-        try{await updateDoc(doc(db,'trades',tradeId),{requesterAccepted:false,receiverAccepted:false,lastError:error.message})}catch(updateError){console.error(updateError)}
-        note('거래 체결 실패: '+error.message,true);
-    }finally{
-        finalizingTradeIds.delete(tradeId);
-    }
-}
-
-function showTradeRequestAlarm(trade){
-    // 거래 신청 알람을 표시할 거래 아이디를 저장한다.
-    pendingTradeRequestId=trade.id;
-    // 신청자의 현재 플레이어 정보를 가져온다.
-    const requester=players.find(player=>player.id===trade.requesterId);
-    // 신청자 정보가 없더라도 거래 문서에 저장된 정보로 표시한다.
-    const countryFlag= requester?.countryFlag||trade.requesterFlag||'🌐';
-    const countryName=requester?.country||trade.requesterCountry||trade.requesterName||'학생';
-    const displayName=requester?.displayName||trade.requesterName||'학생';
-    const studentNumber=requester?.studentNo||trade.requesterStudentNo||'미등록';
-    const currentLevel=requester?levelFor(requester.inventory||{},requester.country||'').level:'-';
-    // 메이플스토리의 거래 신청 알람과 유사하게 상대 정보를 보여 준다.
-    $('tradeRequestInfo').innerHTML=`<div class="text-center"><div class="text-4xl">${safe(countryFlag)}</div><p class="mt-2 text-lg font-black text-white">${safe(countryName)}</p><p class="mt-1 text-sm text-sky-100/70">${safe(displayName)} · 출석번호 ${safe(studentNumber)}</p><p class="mt-1 text-xs text-cyan-200">현재 레벨 Lv.${safe(currentLevel)}</p><p class="mt-3 text-sm font-bold text-yellow-200">거래를 신청했습니다.</p></div>`;
-    // 알람 모달을 표시한다.
-    if(!$('tradeRequestModal').open)$('tradeRequestModal').showModal();
+function card(t,incoming){
+    let total=(t.totalPrice||t.quantity*t.unitPrice||0);
+    return `<div class="rounded-xl border border-sky-400/20 bg-slate-900/60 p-4 hover:border-sky-400/50 hover:bg-slate-800/80 transition shadow-md">
+        <div class="flex justify-between gap-3">
+            <div>
+                <p class="font-black text-lg text-white">${icon[t.itemId]||'📦'} ${labels[t.itemId]||t.itemId} <span class="text-cyan-300 ml-1">× ${fmt(t.quantity)}</span></p>
+                <p class="mt-1 text-xs text-sky-100/70 font-bold">${incoming?'판매: '+safe(t.sellerName):'구매: '+safe(t.buyerName)}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-black text-yellow-300 text-lg drop-shadow-md">₩${fmt(total)}</p>
+                <p class="mt-1 text-xs font-bold ${t.status==='pending'?'text-cyan-300':t.status==='accepted'?'text-emerald-400':'text-rose-400'}">${t.status==='pending'?'대기 중':t.status==='accepted'?'체결 완료':'거절됨'}</p>
+            </div>
+        </div>
+        ${incoming&&t.status==='pending'?`<div class="mt-4 flex gap-2"><button onclick="window.acceptTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 transition px-3 py-2.5 text-sm font-black text-white shadow-lg transform hover:-translate-y-0.5">수락</button><button onclick="window.rejectTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-slate-700 hover:bg-rose-500 transition px-3 py-2.5 text-sm font-black text-white shadow-lg transform hover:-translate-y-0.5">거절</button></div>`:''}
+    </div>`
 }
 
 function renderTrades(ts){
-    // 기존 거래 기록은 유지하면서 새로운 양방향 거래 상태를 실시간으로 처리한다.
-    const newTrades=ts.filter(trade=>trade.type==='player_trade');
-    // 나에게 들어온 새로운 거래 신청을 찾는다.
-    const requests=newTrades.filter(trade=>trade.receiverId===uid&&trade.status==='requested').sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    // 새로운 신청이 들어왔으면 알람 토스트와 신청 창을 표시한다.
-    requests.filter(trade=>!knownTradeRequests.has(trade.id)).forEach(trade=>{
-        knownTradeRequests.add(trade.id);
-        note(`🔔 ${trade.requesterName||'학생'} 님이 거래를 신청했습니다.`);
-        showTradeRequestAlarm(trade);
+    ts.filter(t=>t.status==='accepted'&&!knownAccepted.has(t.id)).forEach(t=>{
+        if(knownAccepted.size)animateTrade(t.sellerId,t.buyerId,t.itemId,t.quantity);
+        knownAccepted.add(t.id)
     });
-    // 이미 처리된 신청은 알람 중복 방지를 위해 기억한다.
-    requests.forEach(trade=>knownTradeRequests.add(trade.id));
-    // 현재 진행 중인 거래가 있으면 양쪽 화면에서 거래 창을 연다.
-    const activeTrade=newTrades.find(trade=>trade.status==='negotiating'&&(trade.requesterId===uid||trade.receiverId===uid));
-    if(activeTrade){
-        // 양쪽 모두 수락한 순간 거래 체결 트랜잭션을 실행한다.
-        if(activeTrade.requesterAccepted===true&&activeTrade.receiverAccepted===true)finalizeTrade(activeTrade.id);
-        // 거래 창의 양쪽 정보와 수락 상태를 실시간으로 갱신한다.
-        renderTradeSession(activeTrade);
-    }
-    // 현재 거래가 완료되었거나 취소되었다면 거래 창을 닫는다.
-    const closedTrade=newTrades.find(trade=>trade.id===activeTradeId&&['completed','cancelled','rejected'].includes(trade.status));
-    if(closedTrade){
-        if($('tradeSessionModal').open)$('tradeSessionModal').close();
-        activeTradeId='';
-    }
-    // 기존 거래 기록과 새로운 거래 기록을 각각 받은 거래와 보낸 거래 영역에 표시한다.
-    const received=[...newTrades.filter(trade=>trade.receiverId===uid&&['completed','rejected','cancelled'].includes(trade.status)),...ts.filter(trade=>!trade.type&&trade.buyerId===uid)].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    const sent=[...newTrades.filter(trade=>trade.requesterId===uid&&['completed','rejected','cancelled'].includes(trade.status)),...ts.filter(trade=>!trade.type&&trade.sellerId===uid)].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    $('incomingCount').textContent=requests.length;
-    $('incoming').innerHTML=received.length?received.map(trade=>trade.type==='player_trade'?renderNewTradeHistoryCard(trade):renderLegacyTradeCard(trade,true)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">받은 거래 기록이 없습니다.</p>';
-    $('outgoing').innerHTML=sent.length?sent.map(trade=>trade.type==='player_trade'?renderNewTradeHistoryCard(trade):renderLegacyTradeCard(trade,false)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">보낸 거래 기록이 없습니다.</p>';
-    // 교사 관제 화면에서도 새로운 양방향 거래를 기록한다.
+    
+    let a=ts.filter(t=>t.buyerId===uid).sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0));
+    let b=ts.filter(t=>t.sellerId===uid).sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0));
+    let pendingA = a.filter(t=>t.status==='pending');
+    
+    $('incomingCount').textContent=pendingA.length;
+    $('incoming').innerHTML=a.length?a.map(t=>card(t,true)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">받은 무역 제안이 없습니다.</p>';
+    $('outgoing').innerHTML=b.length?b.map(t=>card(t,false)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">보낸 제안이 없습니다.</p>';
+
+    let now=new Set(pendingA.map(t=>t.id));
+    if(tradeBootstrapped) pendingA.filter(t=>!knownIncoming.has(t.id)).forEach(t=>note('📨 새 무역 제안: '+t.sellerName+' · '+labels[t.itemId]+' × '+t.quantity));
+    knownIncoming=now;tradeBootstrapped=true;
+
     if(config.teacherUid===uid){
-        const recent=[...ts].sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0)).slice(0,30);
+        let recent=[...ts].sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0)).slice(0,30);
         $('teacherTradeCount').textContent='최근 '+recent.length+'건';
-        $('teacherTrades').innerHTML=recent.length?recent.map(trade=>{
-            if(trade.type==='player_trade'){
-                const statusText=trade.status==='completed'?'체결':trade.status==='negotiating'?'진행 중':trade.status==='requested'?'신청':'종료';
-                return `<div class="rounded-lg border border-yellow-300/20 bg-slate-900/60 p-3 text-sm shadow-sm hover:bg-slate-800 transition"><b>${safe(getTradeParticipantName(trade,'requester'))}</b> <span class="text-sky-200">↔</span> <b>${safe(getTradeParticipantName(trade,'receiver'))}</b><br><span class="text-yellow-200 mt-1 block font-bold">양방향 거래 · ${statusText}</span></div>`;
-            }
-            return `<div class="rounded-lg border border-yellow-300/20 bg-slate-900/60 p-3 text-sm shadow-sm hover:bg-slate-800 transition"><b>${safe(trade.sellerName||'')}</b> <span class="text-sky-200">→</span> <b>${safe(trade.buyerName||'')}</b><br><span class="text-yellow-200 mt-1 block font-bold">${labels[trade.itemId]||trade.itemId} × ${fmt(trade.quantity)} · ₩${fmt((trade.totalPrice||trade.quantity*trade.unitPrice||0))}</span></div>`;
-        }).join(''):'<p class="text-sm text-yellow-100/60">아직 거래 기록이 없습니다.</p>';
+        $('teacherTrades').innerHTML=recent.length?recent.map(t=>`<div class="rounded-lg border border-yellow-300/20 bg-slate-900/60 p-3 text-sm shadow-sm hover:bg-slate-800 transition"><b>${safe(t.sellerName)}</b> <span class="text-sky-200">→</span> <b>${safe(t.buyerName)}</b><br><span class="text-yellow-200 mt-1 block font-bold">${labels[t.itemId]} × ${fmt(t.quantity)} · ₩${fmt((t.totalPrice||t.quantity*t.unitPrice||0))}</span><span class="float-right text-xs font-bold ${t.status==='accepted'?'text-emerald-400':t.status==='rejected'?'text-rose-400':'text-cyan-300'} -mt-4">${t.status==='accepted'?'체결':t.status==='rejected'?'거절':'대기'}</span></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 거래 기록이 없습니다.</p>'
     }
 }
 
 $('openTrade').onclick=()=>{
-    // 교사가 무역소를 정지한 경우 거래 신청을 막는다.
     if(!enabled()){note('교사가 무역소를 정지했습니다.',true);return;}
-    // 거래 상대 목록을 최신 상태로 갱신한다.
-    fillForm();
-    // 새 거래 신청 창을 연다.
     $('tradeModal').showModal();
 };
 
 $('sendTrade').onclick=async()=>{
-    // 기존의 즉시 판매 방식 대신 양방향 거래 신청을 생성한다.
+    let buyerId=$('buyer').value,itemId=$('item').value,quantity=+$('quantity').value,totalPrice=+$('price').value;
     $('tradeError').textContent='';
     if(!enabled())return;
-    await createTradeRequest();
-};
-
-$('tradeRequestAccept').onclick=()=>{
-    // 현재 표시 중인 거래 신청을 승낙한다.
-    if(pendingTradeRequestId)respondToTradeRequest(pendingTradeRequestId,true);
-};
-
-$('tradeRequestReject').onclick=()=>{
-    // 현재 표시 중인 거래 신청을 거절한다.
-    if(pendingTradeRequestId)respondToTradeRequest(pendingTradeRequestId,false);
-};
-
-$('tradeSessionAccept').onclick=toggleTradeAcceptance;
-$('tradeSessionCancel').onclick=cancelActiveTrade;
-$('tradeSessionCancelTop').onclick=cancelActiveTrade;
-
-// 거래 창에서 입력한 금액이나 자원량을 Firestore에 실시간 저장한다.
-$('tradeSelfOfferInputs').addEventListener('change',async event=>{
-    // 거래 입력 필드가 아니면 처리하지 않는다.
-    const input=event.target.closest('[data-trade-offer-key]');
-    if(!input||!activeTradeId)return;
-    // 현재 거래 문서를 찾는다.
-    const trade=players.length?null:null;
+    if(!buyerId||!itemId||!Number.isInteger(quantity)||quantity<1||!Number.isFinite(totalPrice)||totalPrice<1)return $('tradeError').textContent='상대, 자원, 수량과 단가를 확인하세요.';
+    if((me.inventory?.[itemId]||0)<quantity)return $('tradeError').textContent='보유 자원이 부족합니다.';
+    
+    let b=players.find(x=>x.id===buyerId);
     try{
-        // 현재 활성 거래는 마지막 거래 스냅샷에서 다시 찾아 처리한다.
-        const tradeSnapshot=await getDoc(doc(db,'trades',activeTradeId));
-        if(!tradeSnapshot.exists())return;
-        await updateMyTradeOffer({id:tradeSnapshot.id,...tradeSnapshot.data()},input.dataset.tradeOfferKey,input.value);
-    }catch(error){
-        note('거래 내용 저장 실패: '+error.message,true);
-    }
-});
+        await addDoc(collection(db,'trades'),{
+            roomId,sellerId:uid,sellerName:me.country||me.displayName,buyerId,buyerName:b?.country||b?.displayName||'',
+            itemId,quantity,totalPrice,status:'pending',createdAt:serverTimestamp()
+        });
+        $('tradeModal').close();
+        note('무역 제안을 보냈습니다.')
+    }catch(e){$('tradeError').textContent=e.message}
+};
 
-window.tradeWith=id=>{
-    // 거래소가 열린 상태인지 확인한다.
-    if(!enabled()){note('교사가 무역소를 정지했습니다.',true);return;}
-    // 선택한 학생을 거래 상대 기본값으로 설정한다.
-    $('buyer').value=id;
-    // 거래 신청 창을 연다.
-    $('tradeModal').showModal();
+window.rejectTrade=async id=>{
+    if(enabled())try{await updateDoc(doc(db,'trades',id),{status:'rejected',resolvedAt:serverTimestamp()})}catch(e){note(e.message,true)}
+};
+
+window.acceptTrade=async id=>{
+    try{
+        await runTransaction(db,async tx=>{
+            const tr=doc(db,'trades',id),cf=doc(db,`rooms/${roomId}/config/settings`);
+            const [ts,cs]=await Promise.all([tx.get(tr),tx.get(cf)]);
+            if(!ts.exists())throw Error('거래를 찾을 수 없습니다.');
+            
+            let t=ts.data();
+            if(t.buyerId!==uid||t.status!=='pending')throw Error('이미 처리된 거래입니다.');
+            if(cs.data()?.is_trading_active!==true)throw Error('무역소가 정지되었습니다.');
+            
+            const sr=doc(db,`rooms/${roomId}/players/${t.sellerId}`),br=doc(db,`rooms/${roomId}/players/${t.buyerId}`);
+            const [ss,bs]=await Promise.all([tx.get(sr),tx.get(br)]);
+            let seller=ss.data(),buyer=bs.data(),cost=(t.totalPrice||t.quantity*t.unitPrice||0);
+            
+            if(!seller||!buyer)throw Error('참여자 정보를 찾을 수 없습니다.');
+            let si={...(seller.inventory||{})},bi={...(buyer.inventory||{})};
+            
+            if((si[t.itemId]||0)<t.quantity)throw Error('판매 국가의 자원이 부족합니다.');
+            if((buyer.balance||0)<cost)throw Error('국고가 부족합니다.');
+            
+            si[t.itemId]-=t.quantity;
+            bi[t.itemId]=(bi[t.itemId]||0)+t.quantity;
+            
+            tx.update(sr,{inventory:si,balance:(seller.balance||0)+cost});
+            tx.update(br,{inventory:bi,balance:(buyer.balance||0)-cost});
+            tx.update(tr,{status:'accepted',resolvedAt:serverTimestamp()});
+            tx.set(doc(collection(db,'market_history')),{roomId,itemId:t.itemId,unitPrice:(t.totalPrice||t.quantity*t.unitPrice||0)/t.quantity,quantity:t.quantity,tradeId:id,createdAt:serverTimestamp()})
+        });
+        note('무역이 체결되었습니다!');
+    }catch(e){note('수락 실패: '+e.message,true)}
 };
 
 $('toggleTrading').onclick=async()=>{
