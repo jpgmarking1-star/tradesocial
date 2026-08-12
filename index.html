@@ -1644,30 +1644,45 @@ async function createTradeRequest(){
     }
 }
 
+// 거래 승낙은 단일 문서 갱신으로 처리하여 불필요한 Firestore 트랜잭션 재시도를 방지한다.
 async function respondToTradeRequest(tradeId,accept){
-    // 현재 거래 신청 문서를 기준으로 승낙 또는 거절한다.
+    // 거래 신청 승낙과 거절에서는 트랜잭션 대신 단일 문서 읽기와 단일 문서 갱신을 사용한다.
+    // 이 변경은 거래 신청 문서 하나만 갱신하면서 Firestore 트랜잭션의 재시도와 클라이언트 저장공간 할당 문제를 피한다.
     try{
-        await runTransaction(db,async tx=>{
-            // 최신 거래 신청 문서를 읽는다.
-            const tradeRef=doc(db,'trades',tradeId);
-            const tradeSnap=await tx.get(tradeRef);
-            // 이미 처리된 신청은 다시 처리하지 않는다.
-            if(!tradeSnap.exists())throw Error('거래 신청을 찾을 수 없습니다.');
-            const trade=tradeSnap.data();
-            if(trade.receiverId!==uid||trade.status!=='requested')throw Error('이미 처리된 거래 신청입니다.');
-            // 신청자가 그 사이 다른 거래를 시작했다면 승낙하지 못하게 한다.
-            if(getActiveTradeForPlayer(trade.requesterId)||getActiveTradeForPlayer(uid))throw Error('거래중입니다.');
-            // 승낙하면 양쪽 거래 창으로 전환하고, 거절하면 종료한다.
-            tx.update(tradeRef,accept?{status:'negotiating',receiverAccepted:false,requesterAccepted:false,acceptedAt:serverTimestamp()}:{status:'rejected',rejectedBy:uid,rejectedAt:serverTimestamp()});
-        });
-        // 알람 창을 닫는다.
+        // 처리 대상 거래 신청 문서를 지정한다.
+        const tradeRef=doc(db,'trades',tradeId);
+        // 현재 서버에 저장된 최신 거래 신청 정보를 한 번 읽는다.
+        const tradeSnap=await getDoc(tradeRef);
+        // 거래 신청이 삭제되었거나 존재하지 않으면 처리를 중단한다.
+        if(!tradeSnap.exists())throw Error('거래 신청을 찾을 수 없습니다.');
+        // 최신 거래 신청 데이터를 가져온다.
+        const trade=tradeSnap.data();
+        // 현재 로그인한 학생에게 온 아직 처리되지 않은 신청인지 확인한다.
+        if(trade.receiverId!==uid||trade.status!=='requested')throw Error('이미 처리된 거래 신청입니다.');
+        // 신청자 또는 수신자가 이미 다른 거래 중이면 승낙하지 않는다.
+        if(getActiveTradeForPlayer(trade.requesterId)||getActiveTradeForPlayer(uid))throw Error('거래중입니다.');
+        // 거래 상태에 맞는 단일 문서 갱신 내용을 만든다.
+        const updateData=accept
+            ?{status:'negotiating',receiverAccepted:false,requesterAccepted:false,acceptedAt:serverTimestamp()}
+            :{status:'rejected',rejectedBy:uid,rejectedAt:serverTimestamp()};
+        // 거래 신청 문서 하나만 직접 갱신하여 트랜잭션 재시도를 사용하지 않는다.
+        await updateDoc(tradeRef,updateData);
+        // 거래 신청 알람 창을 닫는다.
         $('tradeRequestModal').close();
+        // 처리된 대기 거래 신청 아이디를 비운다.
         pendingTradeRequestId='';
-        // 승낙한 경우 실시간 거래 문서가 갱신되면서 거래 창이 자동으로 열린다.
+        // 승낙한 경우 거래 문서의 실시간 구독이 양쪽 화면에서 거래창을 열도록 한다.
         if(accept)note('거래 신청을 승낙했습니다. 거래 창을 준비합니다.');
+        // 거절한 경우 거절 완료 알림을 표시한다.
         else note('거래 신청을 거절했습니다.');
     }catch(error){
-        note('거래 신청 처리 실패: '+error.message,true);
+        // 브라우저 저장공간 또는 Firestore의 일시적인 Quota exceeded 오류를 사용자에게 더 이해하기 쉬운 메시지로 표시한다.
+        const errorMessage=String(error?.message||error);
+        if(/quota exceeded/i.test(errorMessage)){
+            note('거래 승낙 저장 중 일시적인 저장공간 오류가 발생했습니다. 다시 한 번 눌러주세요.',true);
+        }else{
+            note('거래 신청 처리 실패: '+errorMessage,true);
+        }
     }
 }
 
