@@ -1727,13 +1727,13 @@ async function toggleTradeAcceptance(){
         await updateDoc(tradeRef,{[field]:nextAccepted,acceptChangedAt:serverTimestamp()});
         // 내 화면에서 즉시 버튼 상태를 보여 준다.
         $('tradeSessionAccept').textContent=nextAccepted?'수락 취소':'거래 수락';
-        // 두 사람이 모두 수락했음을 현재 문서에서 확인할 수 있으면 거래 체결을 즉시 시도한다.
+        // 두 사람이 모두 수락했을 때는 신청자 한 명만 최종 체결을 담당하게 하여 동시 체결 충돌을 방지한다.
         if(nextAccepted){
             const latestTradeSnap=await getDoc(tradeRef);
             if(latestTradeSnap.exists()){
                 const latestTrade=latestTradeSnap.data();
-                if(latestTrade.status==='negotiating'&&latestTrade.requesterAccepted===true&&latestTrade.receiverAccepted===true){
-                    await finalizeTrade(activeTradeId);
+                if(latestTrade.status==='negotiating'&&latestTrade.requesterAccepted===true&&latestTrade.receiverAccepted===true&&latestTrade.requesterId===uid){
+                    await finalizeTradeWithRetry(activeTradeId);
                 }
             }
         }
@@ -1761,63 +1761,101 @@ async function cancelActiveTrade(){
     }
 }
 
+async function finalizeTradeWithRetry(tradeId){
+    // 거래 체결을 최대 세 번 재시도하여 순간적인 Firestore 동시 수정 충돌을 흡수한다.
+    let lastError=null;
+    // 짧은 지연을 두고 순차적으로 재시도한다.
+    for(let attempt=0;attempt<3;attempt++){
+        try{
+            // 기존 원자적 거래 체결 함수를 호출한다.
+            await finalizeTrade(tradeId);
+            // 거래 체결 함수가 정상 종료되면 즉시 반복을 끝낸다.
+            return;
+        }catch(error){
+            // 마지막 오류를 저장한다.
+            lastError=error;
+            // 다음 시도 전에 짧게 기다린다.
+            await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+        }
+    }
+    // 세 번 모두 실패한 경우에만 오류를 기록하고 거래 상태는 취소하지 않는다.
+    console.error('거래 체결 재시도 실패',lastError);
+}
+
 async function finalizeTrade(tradeId){
-    // 같은 거래의 동시 완료 요청을 한 번만 처리한다.
+    // 동일 거래에 대한 중복 체결 시도를 현재 브라우저에서 차단한다.
     if(finalizingTradeIds.has(tradeId))return;
+    // 현재 거래를 체결 중으로 표시한다.
     finalizingTradeIds.add(tradeId);
     try{
+        // 두 사람이 동시에 수락하더라도 하나의 Firestore 트랜잭션만 최종 체결을 수행하도록 한다.
         await runTransaction(db,async tx=>{
-            // 거래 문서와 양쪽 학생 문서를 최신 상태로 읽는다.
+            // 최신 거래 문서를 읽는다.
             const tradeRef=doc(db,'trades',tradeId);
             const tradeSnap=await tx.get(tradeRef);
+            // 거래가 존재하지 않으면 중단한다.
             if(!tradeSnap.exists())throw Error('거래를 찾을 수 없습니다.');
+            // 최신 거래 데이터를 가져온다.
             const trade=tradeSnap.data();
+            // 두 사람 모두 수락한 negotiating 상태에서만 체결한다.
             if(trade.status!=='negotiating'||trade.requesterAccepted!==true||trade.receiverAccepted!==true)return;
-            // 양쪽 학생 문서를 읽는다.
+            // 신청자와 수신자의 플레이어 문서를 지정한다.
             const requesterRef=doc(db,`rooms/${roomId}/players/${trade.requesterId}`);
             const receiverRef=doc(db,`rooms/${roomId}/players/${trade.receiverId}`);
-            const [requesterSnap,receiverSnap]=await Promise.all([tx.get(requesterRef),tx.get(receiverRef)]);
+            // 두 플레이어의 최신 데이터를 같은 트랜잭션에서 읽는다.
+            const requesterSnap=await tx.get(requesterRef);
+            const receiverSnap=await tx.get(receiverRef);
+            // 참가자 문서가 모두 존재해야 한다.
             if(!requesterSnap.exists()||!receiverSnap.exists())throw Error('거래 참가자 정보를 찾을 수 없습니다.');
-            // 최신 학생 데이터를 가져온다.
+            // 최신 참가자 데이터를 가져온다.
             const requester=requesterSnap.data();
             const receiver=receiverSnap.data();
-            // 양쪽 제안을 숫자로 정규화한다.
+            // 거래 제안을 안전한 숫자 구조로 정규화한다.
             const requesterOffer=normalizeTradeOffer(trade.requesterOffer);
             const receiverOffer=normalizeTradeOffer(trade.receiverOffer);
-            // 제안한 국고와 자원을 현재 보유량과 비교한다.
+            // 양쪽 국고가 충분한지 검증한다.
             if(requesterOffer.balance>(requester.balance||0))throw Error('신청자의 국고가 부족합니다.');
             if(receiverOffer.balance>(receiver.balance||0))throw Error('상대방의 국고가 부족합니다.');
+            // 모든 자원이 충분한지 검증한다.
             for(const resourceKey of R.map(item=>item[0])){
                 if(requesterOffer[resourceKey]>(requester.inventory?.[resourceKey]||0))throw Error(`신청자의 ${labels[resourceKey]}이(가) 부족합니다.`);
                 if(receiverOffer[resourceKey]>(receiver.inventory?.[resourceKey]||0))throw Error(`상대방의 ${labels[resourceKey]}이(가) 부족합니다.`);
             }
-            // 양쪽 현재 자원을 복사한다.
+            // 신청자의 기존 자원을 복사한다.
             const requesterInventory={...(requester.inventory||{})};
+            // 수신자의 기존 자원을 복사한다.
             const receiverInventory={...(receiver.inventory||{})};
-            // 신청자가 준 자원을 신청자에게서 빼고 상대방에게 더한다.
+            // 모든 자원을 양쪽 제안대로 교환한다.
             for(const resourceKey of R.map(item=>item[0])){
                 requesterInventory[resourceKey]=(requesterInventory[resourceKey]||0)-requesterOffer[resourceKey]+receiverOffer[resourceKey];
                 receiverInventory[resourceKey]=(receiverInventory[resourceKey]||0)-receiverOffer[resourceKey]+requesterOffer[resourceKey];
             }
-            // 양쪽 국고도 서로 교환한다.
+            // 양쪽 국고를 서로 교환한다.
             const requesterBalance=(requester.balance||0)-requesterOffer.balance+receiverOffer.balance;
             const receiverBalance=(receiver.balance||0)-receiverOffer.balance+requesterOffer.balance;
-            // 양쪽 학생 문서와 거래 문서를 한 번에 갱신한다.
+            // 참가자 자원과 국고를 원자적으로 갱신한다.
             tx.update(requesterRef,{inventory:requesterInventory,balance:requesterBalance});
             tx.update(receiverRef,{inventory:receiverInventory,balance:receiverBalance});
+            // 마지막으로 거래 문서를 완료 상태로 변경한다.
             tx.update(tradeRef,{status:'completed',completedAt:serverTimestamp()});
         });
-        // 거래가 완료되면 현재 사용자에게 완료 알림을 표시한다.
+        // 거래가 완료되었음을 현재 사용자에게 알린다.
         if(activeTradeId===tradeId)note('🤝 양쪽 모두 수락하여 거래가 완료되었습니다!');
     }catch(error){
-        // 자원 부족 등으로 거래가 실패하면 양쪽 수락을 해제한다.
-        try{await updateDoc(doc(db,'trades',tradeId),{requesterAccepted:false,receiverAccepted:false,lastError:error.message})}catch(updateError){console.error(updateError)}
-        note('거래 체결 실패: '+error.message,true);
+        // 실제 잔액 부족처럼 재시도로 해결할 수 없는 오류만 화면에 표시한다.
+        console.error('거래 체결 실패',error);
+        const errorMessage=String(error?.message||error);
+        // 동시 수정 오류나 일시적인 오류에서는 수락 상태를 절대로 초기화하지 않는다.
+        if(!/aborted|failed-precondition|deadline|unavailable|quota exceeded/i.test(errorMessage)){
+            note('거래 체결 실패: '+errorMessage,true);
+        }
+        // 오류를 다시 전달하여 상위 재시도 로직이 처리할 수 있게 한다.
+        throw error;
     }finally{
+        // 현재 브라우저의 체결 잠금을 해제한다.
         finalizingTradeIds.delete(tradeId);
     }
 }
-
 function showTradeRequestAlarm(trade){
     // 거래 신청 알람을 표시할 거래 아이디를 저장한다.
     pendingTradeRequestId=trade.id;
@@ -1854,7 +1892,7 @@ function renderTrades(ts){
     const activeTrade=newTrades.find(trade=>trade.status==='negotiating'&&(trade.requesterId===uid||trade.receiverId===uid));
     if(activeTrade){
         // 양쪽 모두 수락한 순간 거래 체결 트랜잭션을 실행한다.
-        if(activeTrade.requesterAccepted===true&&activeTrade.receiverAccepted===true)finalizeTrade(activeTrade.id);
+        if(activeTrade.requesterAccepted===true&&activeTrade.receiverAccepted===true&&activeTrade.requesterId===uid)finalizeTradeWithRetry(activeTrade.id);
         // 거래 창의 양쪽 정보와 수락 상태를 실시간으로 갱신한다.
         renderTradeSession(activeTrade);
     }
