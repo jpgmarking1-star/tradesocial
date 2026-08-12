@@ -110,6 +110,9 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
 .trade-accepted-blue { color: #60a5fa; }
 .trade-not-accepted-red { color: #f87171; }
 .trade-offer-card { background: rgba(15, 30, 50, 0.55); border: 1px solid rgba(151,202,255,.15); }
+.trade-chat-panel { background: rgba(25, 18, 58, 0.72); border: 1px solid rgba(167,139,250,.35); }
+.trade-chat-message-self { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; }
+.trade-chat-message-opponent { background: rgba(76,29,149,.65); color: #f5f3ff; border: 1px solid rgba(167,139,250,.28); }
 
 @media(max-width:640px) { .chartbox { height: 220px; } }
 </style>
@@ -347,6 +350,20 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
     </div>
 </dialog>
 
+<dialog id="tradeBusyModal" class="dialog w-[min(92vw,420px)] rounded-2xl p-0">
+    <!-- 거래 중인 학생에게 새로운 거래를 신청하려 할 때 표시하는 안내 창이다. -->
+    <div class="p-6 text-center">
+        <!-- 거래 중임을 알리는 아이콘을 표시한다. -->
+        <div class="text-5xl">🤝</div>
+        <!-- 요청된 문구를 그대로 표시한다. -->
+        <h2 class="mt-3 text-2xl font-black text-white">거래중입니다</h2>
+        <!-- 현재 거래가 끝난 뒤 다시 신청할 수 있음을 안내한다. -->
+        <p id="tradeBusyMessage" class="mt-2 text-sm text-sky-100/65">현재 다른 거래가 진행 중입니다.</p>
+        <!-- 안내 창을 닫는다. -->
+        <button onclick="tradeBusyModal.close()" class="mt-5 w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md hover:bg-cyan-300">확인</button>
+    </div>
+</dialog>
+
 <dialog id="tradeSessionModal" class="dialog w-[min(96vw,980px)] rounded-2xl p-0">
     <!-- 메이플스토리와 유사한 양쪽 교환 창을 구성한다. -->
     <div class="p-5 sm:p-6">
@@ -389,6 +406,21 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
                 <div id="tradeOpponentAcceptStatus" class="mt-4 rounded-xl border border-sky-400/20 bg-slate-950/40 p-3 text-sm font-black"></div>
             </section>
         </div>
+        <!-- 거래 중인 두 학생만 사용하는 별도의 채팅 영역이다. -->
+        <section class="trade-chat-panel mt-4 rounded-2xl p-4">
+            <!-- 거래 채팅 제목과 교환 중임을 표시한다. -->
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="font-black text-violet-100">💬 거래 전용 채팅</h3>
+                <span class="rounded-full bg-violet-400/20 px-2 py-1 text-[10px] font-black text-violet-200">거래 채팅</span>
+            </div>
+            <!-- 거래 전용 채팅 메시지를 실시간으로 표시한다. -->
+            <div id="tradeChatMessages" class="mt-3 h-44 overflow-y-auto rounded-xl border border-violet-300/15 bg-slate-950/45 p-3"></div>
+            <!-- 거래 전용 채팅 입력창과 전송 버튼이다. -->
+            <div class="mt-3 flex gap-2">
+                <input id="tradeChatInput" class="min-w-0 flex-1 rounded-xl border border-violet-300/25 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-300" placeholder="거래할 내용을 입력하세요.">
+                <button id="sendTradeChat" class="rounded-xl bg-violet-400 px-4 py-2.5 font-black text-white shadow-md hover:bg-violet-300">전송</button>
+            </div>
+        </section>
         <!-- 양쪽 모두 수락해야 거래가 체결된다는 안내를 표시한다. -->
         <p id="tradeSessionHint" class="mt-4 text-center text-xs text-sky-100/60">양쪽 모두 수락 버튼을 눌러야 거래가 체결됩니다. 거래 내용을 바꾸면 수락 상태가 다시 해제됩니다.</p>
         <!-- 거래 수락과 취소 버튼을 배치한다. -->
@@ -562,7 +594,7 @@ function assignCountry(used=[]){
 }
 
 const labels=Object.fromEntries(R.map(x=>[x[0],x[1]])); const icon=Object.fromEntries(R.map(x=>[x[0],x[2]]));
-const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],rows=[],chart,unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null,activeTradeId='',pendingTradeRequestId='',knownTradeRequests=new Set(),finalizingTradeIds=new Set();
+const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],rows=[],chart,unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null,activeTradeId='',pendingTradeRequestId='',knownTradeRequests=new Set(),finalizingTradeIds=new Set(),tradeRows=[];
 const fmt=n=>new Intl.NumberFormat('ko-KR').format(n||0); const enabled=()=>config.is_trading_active===true;
 
 let currentCountVals = {};
@@ -776,7 +808,9 @@ function initMap(){
 function flyToPlayer(id){
     let p=players.find(x=>x.id===id);
     if(!p||!map)return;
-    map.flyTo([p.lat,p.lng],3,{duration:.45});
+    const position=getCountryMapPosition(p);
+    if(!position)return;
+    map.flyTo([position.lat,position.lng],3,{duration:.45});
     setTimeout(()=>markersById[id]?.openPopup(), 500);
 }
 
@@ -797,53 +831,60 @@ function renderPlayerList(){
 }
 window.focusNation=flyToPlayer;
 
-function renderMapPlayers(){
-    if(!map||!markerLayer)return;
-    markerLayer.clearLayers();markersById={};
-    players.filter(p=>p.role!=='teacher'&&typeof p.lat==='number'&&typeof p.lng==='number').forEach(p=>{
-        let mine=p.id===uid,lv=levelFor(p.inventory||{}, p.country||'').level;
-        let html=`<div class="map-dot ${mine?'me-dot':''}">${p.countryFlag||'🏳️'}</div>`;
-        let m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'nation-marker',html,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markerLayer);
-        markersById[p.id]=m;
-        
-        let node=document.createElement('div');
-        node.style.cssText = 'min-width:240px; color:#eaf2ff; line-height: 1.4;';
-        node.innerHTML=`<b style="font-size:16px; color:#5de0e6;">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br>
-        <span style="font-size: 13px; color:#9fb0c9;">${safe(p.displayName)} (${safe(p.classIdentity||'')}) · 출석번호 ${safe(p.studentNo||'미등록')} · 국가 레벨 ${lv}</span><br>
-        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; font-weight:bold;">
-            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">노동 ${fmt(p.inventory?.labor)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">광물 ${fmt(p.inventory?.mineral)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">수자원 ${fmt(p.inventory?.water)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">기술 ${fmt(p.inventory?.technology)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); grid-column: 1 / 3;">첨단 ${fmt(p.inventory?.advanced)}</div>
-        </div>`;
-        
-        if(!mine){
-            let btnWrapper = document.createElement('div');
-            btnWrapper.style.cssText = 'display:flex; gap:8px; margin-top:14px;';
-            
-            let trade=document.createElement('button');
-            trade.textContent='🤝 거래 시작';
-            trade.style.cssText='flex:1; background:#f8c94d; color:#14233e; border:0; border-radius:8px; padding:10px 0; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.1s;';
-            trade.onmouseover=()=>trade.style.transform='scale(1.05)';
-            trade.onmouseout=()=>trade.style.transform='scale(1)';
-            trade.onclick=()=>window.tradeWith(p.id);
-            
-            let chat=document.createElement('button');
-            chat.textContent='💬 채팅';
-            chat.style.cssText='flex:1; background:#5de0e6; color:#14233e; border:0; border-radius:8px; padding:10px 0; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.1s;';
-            chat.onmouseover=()=>chat.style.transform='scale(1.05)';
-            chat.onmouseout=()=>chat.style.transform='scale(1)';
-            chat.onclick=()=>window.openChat(p.id);
-            
-            btnWrapper.append(trade,chat);
-            node.append(btnWrapper);
-        }
-        
-        m.bindPopup(node, {autoClose: false, closeOnClick: false});
-    });
-    renderPlayerList()
+function getCountryMapPosition(player){
+    // 기존 학생 문서에 좌표가 없더라도 국가 데이터에서 위치를 찾아 지도에 표시한다.
+    if(typeof player.lat==='number'&&typeof player.lng==='number')return {lat:player.lat,lng:player.lng};
+    const countryDefinition=COUNTRIES.find(country=>country.name===player.country);
+    if(countryDefinition)return {lat:countryDefinition.lat,lng:countryDefinition.lng};
+    return null;
 }
+
+function renderMapPlayers(){
+    // 지도와 마커 레이어가 준비되지 않았으면 다음 실시간 갱신에서 다시 렌더링한다.
+    if(!map||!markerLayer)return;
+    // 기존 마커를 제거하여 최신 학생 목록으로 다시 그린다.
+    markerLayer.clearLayers();markersById={};
+    // 교사를 제외한 모든 학생을 지도에 표시한다.
+    players.filter(player=>player.role!=='teacher').forEach(player=>{
+        // 저장된 좌표가 없으면 국가 기본 좌표를 사용한다.
+        const position=getCountryMapPosition(player);
+        // 위치를 전혀 찾을 수 없는 학생만 지도 마커에서 제외한다.
+        if(!position)return;
+        // 현재 국가의 레벨을 계산한다.
+        const currentLevel=levelFor(player.inventory||{},player.country||'').level;
+        // 현재 로그인한 학생은 다른 색으로 표시한다.
+        const isMine=player.id===uid;
+        const html=`<div class="map-dot ${isMine?'me-dot':''}">${player.countryFlag||'🏳️'}</div>`;
+        // 국가 위치에 실시간 마커를 생성한다.
+        const marker=L.marker([position.lat,position.lng],{icon:L.divIcon({className:'nation-marker',html,iconSize:[32,32],iconAnchor:[16,16]})}).addTo(markerLayer);
+        // 거래 애니메이션과 국가 포커스에서 사용할 마커를 저장한다.
+        markersById[player.id]=marker;
+        // 국가 정보를 표시할 팝업 DOM을 생성한다.
+        const popupNode=document.createElement('div');
+        popupNode.style.cssText='min-width:240px; color:#eaf2ff; line-height:1.4;';
+        popupNode.innerHTML=`<b style="font-size:16px; color:#5de0e6;">${safe(player.countryFlag||'🌐')} ${safe(player.country||player.displayName)}</b><br><span style="font-size:13px; color:#9fb0c9;">${safe(player.displayName)} (${safe(player.classIdentity||'')}) · 출석번호 ${safe(player.studentNo||'미등록')} · 국가 레벨 ${currentLevel}</span><br><div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; font-weight:bold;"><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">노동 ${fmt(player.inventory?.labor)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">광물 ${fmt(player.inventory?.mineral)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">수자원 ${fmt(player.inventory?.water)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">기술 ${fmt(player.inventory?.technology)}</div><div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; grid-column:1 / 3;">첨단 ${fmt(player.inventory?.advanced)}</div></div>`;
+        // 다른 학생에게는 거래와 채팅 버튼을 제공한다.
+        if(!isMine){
+            const buttonWrapper=document.createElement('div');
+            buttonWrapper.style.cssText='display:flex; gap:8px; margin-top:14px;';
+            const tradeButton=document.createElement('button');
+            tradeButton.textContent='🤝 거래 시작';
+            tradeButton.style.cssText='flex:1; background:#f8c94d; color:#14233e; border:0; border-radius:8px; padding:10px 0; font-weight:bold; cursor:pointer;';
+            tradeButton.onclick=()=>window.tradeWith(player.id);
+            const chatButton=document.createElement('button');
+            chatButton.textContent='💬 채팅';
+            chatButton.style.cssText='flex:1; background:#5de0e6; color:#14233e; border:0; border-radius:8px; padding:10px 0; font-weight:bold; cursor:pointer;';
+            chatButton.onclick=()=>window.openChat(player.id);
+            buttonWrapper.append(tradeButton,chatButton);
+            popupNode.append(buttonWrapper);
+        }
+        // 팝업을 국가 마커에 연결한다.
+        marker.bindPopup(popupNode,{autoClose:false,closeOnClick:false});
+    });
+    // 지도 옆 학생 목록도 같은 실시간 데이터로 갱신한다.
+    renderPlayerList();
+}
+
 window.tradeWith=id=>{
     if(!enabled()){note('교사가 무역소를 정지했습니다.',true);return}
     $('buyer').value=id;$('tradeModal').showModal()
@@ -880,10 +921,36 @@ $('chatTradeBtn').onclick=()=>{
 };
 
 function renderChat(){
+    // 일반 채팅 창에서는 거래 전용 채팅을 제외한다.
     if(!activeChatId)return;
-    let messages=chatRows.filter(m=>(m.senderId===uid&&m.receiverId===activeChatId)||(m.senderId===activeChatId&&m.receiverId===uid));
-    $('chatMessages').innerHTML=messages.length?messages.map(m=>`<div class="flex ${m.senderId===uid?'justify-end':'justify-start'} mb-2"><div class="max-w-[80%] rounded-xl px-3 py-2 text-sm ${m.senderId===uid?'bg-cyan-400 text-slate-950 shadow-md':'bg-slate-700 text-white shadow-md'}"><b class="block text-[10px] opacity-70 mb-1">${safe(m.senderName||'')}</b>${safe(m.text||'')}</div></div>`).join(''):'<p class="pt-20 text-center text-sm text-sky-100/50">대화를 시작해 보세요.</p>';
-    $('chatMessages').scrollTop=$('chatMessages').scrollHeight
+    const messages=chatRows.filter(message=>!message.tradeId&&message.messageType!=='trade'&&((message.senderId===uid&&message.receiverId===activeChatId)||(message.senderId===activeChatId&&message.receiverId===uid)));
+    $('chatMessages').innerHTML=messages.length?messages.map(message=>`<div class="flex ${message.senderId===uid?'justify-end':'justify-start'} mb-2"><div class="max-w-[80%] rounded-xl px-3 py-2 text-sm ${message.senderId===uid?'bg-cyan-400 text-slate-950 shadow-md':'bg-slate-700 text-white shadow-md'}"><b class="block text-[10px] opacity-70 mb-1">${safe(message.senderName||'')}</b>${safe(message.text||'')}</div></div>`).join(''):'<p class="pt-20 text-center text-sm text-sky-100/50">대화를 시작해 보세요.</p>';
+    $('chatMessages').scrollTop=$('chatMessages').scrollHeight;
+}
+
+function renderTradeChat(tradeId){
+    // 현재 거래에 연결된 거래 전용 메시지만 실시간으로 표시한다.
+    if(!tradeId||!$('tradeChatMessages'))return;
+    const messages=chatRows.filter(message=>message.tradeId===tradeId&&message.messageType==='trade').sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    $('tradeChatMessages').innerHTML=messages.length?messages.map(message=>`<div class="flex ${message.senderId===uid?'justify-end':'justify-start'} mb-2"><div class="max-w-[82%] rounded-xl px-3 py-2 text-sm shadow-md ${message.senderId===uid?'trade-chat-message-self':'trade-chat-message-opponent'}"><b class="block text-[10px] opacity-75 mb-1">${safe(message.senderName||'')}</b>${safe(message.text||'')}</div></div>`).join(''):'<p class="pt-12 text-center text-xs text-violet-100/50">거래 채팅을 시작해 보세요.</p>';
+    $('tradeChatMessages').scrollTop=$('tradeChatMessages').scrollHeight;
+}
+
+async function sendTradeChatMessage(){
+    // 현재 거래 중인 상대에게만 거래 전용 메시지를 전송한다.
+    const text=$('tradeChatInput').value.trim();
+    if(!text||!activeTradeId)return;
+    const trade=tradeRows.find(row=>row.id===activeTradeId);
+    if(!trade||trade.status!=='negotiating')return;
+    const opponentId=trade.requesterId===uid?trade.receiverId:trade.requesterId;
+    const opponent=players.find(player=>player.id===opponentId);
+    if(!opponent)return;
+    try{
+        await addDoc(collection(db,'messages'),{roomId,tradeId:activeTradeId,messageType:'trade',senderId:uid,senderName:me.displayName||'',receiverId:opponentId,receiverName:opponent.displayName||'',text,createdAt:serverTimestamp()});
+        $('tradeChatInput').value='';
+    }catch(error){
+        note('거래 채팅 전송 실패: '+error.message,true);
+    }
 }
 async function sendMessage(){
     let text=$('chatInput').value.trim(),to=players.find(p=>p.id===activeChatId);
@@ -898,8 +965,11 @@ $('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e
 
 function renderTeacherChats(){
     if(config.teacherUid!==uid)return;
-    let out=[...chatRows].slice(-50).reverse();
-    $('teacherChats').innerHTML=out.length?out.map(m=>`<div class="rounded-lg border border-yellow-300/15 bg-slate-900/50 p-3 text-sm transition hover:bg-slate-800"><b>${safe(m.senderName)}</b> <span class="text-yellow-100/55">→</span> <b>${safe(m.receiverName)}</b><p class="mt-1 text-yellow-50/90">${safe(m.text)}</p></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 채팅 기록이 없습니다.</p>'
+    let out=[...chatRows].slice(-80).reverse();
+    $('teacherChats').innerHTML=out.length?out.map(m=>{
+        const tradeMessage=m.messageType==='trade'||!!m.tradeId;
+        return `<div class="rounded-lg p-3 text-sm transition ${tradeMessage?'border border-violet-400/35 bg-violet-950/40':'border border-yellow-300/15 bg-slate-900/50 hover:bg-slate-800'}"><div class="flex items-center justify-between gap-2"><span><b>${safe(m.senderName)}</b> <span class="text-yellow-100/55">→</span> <b>${safe(m.receiverName)}</b></span>${tradeMessage?'<span class="rounded-full bg-violet-400/20 px-2 py-1 text-[10px] font-black text-violet-200">거래 채팅</span>':''}</div><p class="mt-1 ${tradeMessage?'text-violet-100':'text-yellow-50/90'}">${safe(m.text)}</p></div>`;
+    }).join(''):'<p class="text-sm text-yellow-100/60">아직 채팅 기록이 없습니다.</p>'
 }
 
 $('quickChat').onclick=()=>{
@@ -1213,7 +1283,9 @@ function watch(){
     unsubs.push(onSnapshot(query(collection(db,'trades'),where('roomId','==',roomId)),s=>renderTrades(s.docs.map(d=>({id:d.id,...d.data()})))));
     unsubs.push(onSnapshot(query(collection(db,'messages'),where('roomId','==',roomId)),s=>{
         chatRows=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-        renderChat();renderTeacherChats();
+        renderChat();
+        renderTradeChat(activeTradeId);
+        renderTeacherChats();
         let inbox=chatRows.filter(m=>m.receiverId===uid);
         if(messageBootstrapped)inbox.filter(m=>!knownMessages.has(m.id)).forEach(m=>note('💬 '+m.senderName+' 님에게 새 채팅이 왔습니다.'));
         knownMessages=new Set(inbox.map(m=>m.id));messageBootstrapped=true
@@ -1439,6 +1511,8 @@ function renderTradeSession(trade){
     const opponentAccepted=selfIsRequester?trade.receiverAccepted===true:trade.requesterAccepted===true;
     $('tradeSelfAcceptStatus').innerHTML=selfAccepted?'<span class="trade-accepted-blue">● 수락함</span>':'<span class="trade-not-accepted-red">● 아직 수락하지 않음</span>';
     $('tradeOpponentAcceptStatus').innerHTML=opponentAccepted?'<span class="trade-accepted-blue">● 상대방 수락함</span>':'<span class="trade-not-accepted-red">● 상대방 미수락</span>';
+    // 거래 전용 채팅도 거래 문서와 함께 실시간으로 갱신한다.
+    renderTradeChat(trade.id);
     // 현재 수락 상태에 따라 버튼 문구를 변경한다.
     $('tradeSessionAccept').textContent=selfAccepted?'수락 취소':'거래 수락';
     // 거래가 완료된 상태에서는 거래 창을 닫는다.
@@ -1466,17 +1540,48 @@ function renderNewTradeHistoryCard(trade){
     return `<div class="rounded-xl border border-cyan-400/15 bg-slate-900/60 p-4 shadow-md"><div class="flex justify-between gap-3"><div><p class="font-black text-sm text-white">${safe(requesterName)} <span class="text-cyan-300">↔</span> ${safe(receiverName)}</p><p class="mt-2 text-xs text-sky-100/70">${safe(requesterName)}: ${safe(formatOffer(requesterOffer))}</p><p class="mt-1 text-xs text-sky-100/70">${safe(receiverName)}: ${safe(formatOffer(receiverOffer))}</p></div><div class="text-right"><p class="text-xs font-black text-emerald-400">거래 완료</p><p class="mt-1 text-[10px] text-sky-100/45">${safe(requesterId===uid?'내가 신청':'상대가 신청')}</p></div></div></div>`;
 }
 
+function getActiveTradeForPlayer(playerId){
+    // 현재 거래 중인 학생이 포함된 거래 문서를 찾는다.
+    return tradeRows.find(trade=>trade.type==='player_trade'&&trade.status==='negotiating'&&(trade.requesterId===playerId||trade.receiverId===playerId));
+}
+
+function showTradeBusyMessage(playerName){
+    // 거래 중이라는 안내 창을 열고 상대 이름을 함께 표시한다.
+    $('tradeBusyMessage').textContent=playerName?`${playerName}은(는) 현재 다른 학생과 거래 중입니다.`:'현재 다른 거래가 진행 중입니다.';
+    if(!$('tradeBusyModal').open)$('tradeBusyModal').showModal();
+}
+
 async function createTradeRequest(){
-    // 거래소가 열린 상태에서만 새로운 거래 신청을 보낸다.
+    // 교사가 무역소를 정지한 경우 거래 신청을 막는다.
     if(!enabled())return note('교사가 무역소를 정지했습니다.',true);
     // 선택한 상대방을 확인한다.
     const receiverId=$('buyer').value;
     const receiver=players.find(player=>player.id===receiverId);
     // 자기 자신이나 존재하지 않는 상대방에게는 거래 신청을 보낼 수 없다.
     if(!receiverId||receiverId===uid||!receiver)return $('tradeError').textContent='거래 상대를 선택하세요.';
-    // 거래 신청 문서를 기존 trades 컬렉션에 추가한다.
+    // 신청자 본인이 이미 거래 중이면 새로운 거래를 시작할 수 없다.
+    if(getActiveTradeForPlayer(uid)){
+        $('tradeModal').close();
+        showTradeBusyMessage();
+        return;
+    }
+    // 거래 상대가 이미 거래 중이면 신청 자체를 생성하지 않는다.
+    if(getActiveTradeForPlayer(receiverId)){
+        $('tradeModal').close();
+        showTradeBusyMessage(receiver.country||receiver.displayName);
+        return;
+    }
     try{
-        await addDoc(collection(db,'trades'),{roomId,type:'player_trade',status:'requested',requesterId:uid,requesterName:me.displayName||'',requesterCountry:me.country||'',requesterFlag:me.countryFlag||'🌐',requesterStudentNo:me.studentNo||'',receiverId,receiverName:receiver.displayName||'',receiverCountry:receiver.country||'',receiverFlag:receiver.countryFlag||'🌐',receiverStudentNo:receiver.studentNo||'',requesterOffer:emptyTradeOffer(),receiverOffer:emptyTradeOffer(),requesterAccepted:false,receiverAccepted:false,createdAt:serverTimestamp()});
+        // 양쪽이 동시에 신청하더라도 직전에 갱신된 거래 상태를 다시 확인한다.
+        if(getActiveTradeForPlayer(uid)||getActiveTradeForPlayer(receiverId)){
+            $('tradeModal').close();
+            showTradeBusyMessage();
+            return;
+        }
+        // 기존 trades 컬렉션에 양방향 거래 신청을 추가한다.
+        const tradeRef=await addDoc(collection(db,'trades'),{roomId,type:'player_trade',status:'requested',requesterId:uid,requesterName:me.displayName||'',requesterCountry:me.country||'',requesterFlag:me.countryFlag||'🌐',requesterStudentNo:me.studentNo||'',receiverId,receiverName:receiver.displayName||'',receiverCountry:receiver.country||'',receiverFlag:receiver.countryFlag||'🌐',receiverStudentNo:receiver.studentNo||'',participants:[uid,receiverId],requesterOffer:emptyTradeOffer(),receiverOffer:emptyTradeOffer(),requesterAccepted:false,receiverAccepted:false,createdAt:serverTimestamp()});
+        // 생성 직후 같은 학생의 다른 거래 신청이 들어온 경우 다음 요청에서 차단되도록 로컬 거래 목록도 갱신한다.
+        tradeRows.push({id:tradeRef.id,roomId,type:'player_trade',status:'requested',requesterId:uid,receiverId});
         $('tradeModal').close();
         note(`${receiver.country||receiver.displayName}에게 거래 신청을 보냈습니다.`);
     }catch(error){
@@ -1495,6 +1600,8 @@ async function respondToTradeRequest(tradeId,accept){
             if(!tradeSnap.exists())throw Error('거래 신청을 찾을 수 없습니다.');
             const trade=tradeSnap.data();
             if(trade.receiverId!==uid||trade.status!=='requested')throw Error('이미 처리된 거래 신청입니다.');
+            // 신청자가 그 사이 다른 거래를 시작했다면 승낙하지 못하게 한다.
+            if(getActiveTradeForPlayer(trade.requesterId)||getActiveTradeForPlayer(uid))throw Error('거래중입니다.');
             // 승낙하면 양쪽 거래 창으로 전환하고, 거절하면 종료한다.
             tx.update(tradeRef,accept?{status:'negotiating',receiverAccepted:false,requesterAccepted:false,acceptedAt:serverTimestamp()}:{status:'rejected',rejectedBy:uid,rejectedAt:serverTimestamp()});
         });
@@ -1631,6 +1738,8 @@ function showTradeRequestAlarm(trade){
 }
 
 function renderTrades(ts){
+    // 모든 거래 문서를 전역 상태에 저장하여 거래 중 여부와 거래 채팅에서 재사용한다.
+    tradeRows=ts;
     // 기존 거래 기록은 유지하면서 새로운 양방향 거래 상태를 실시간으로 처리한다.
     const newTrades=ts.filter(trade=>trade.type==='player_trade');
     // 나에게 들어온 새로운 거래 신청을 찾는다.
@@ -1706,6 +1815,8 @@ $('tradeRequestReject').onclick=()=>{
 $('tradeSessionAccept').onclick=toggleTradeAcceptance;
 $('tradeSessionCancel').onclick=cancelActiveTrade;
 $('tradeSessionCancelTop').onclick=cancelActiveTrade;
+$('sendTradeChat').onclick=sendTradeChatMessage;
+$('tradeChatInput').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTradeChatMessage()}});
 
 // 거래 창에서 입력한 금액이나 자원량을 Firestore에 실시간 저장한다.
 $('tradeSelfOfferInputs').addEventListener('change',async event=>{
