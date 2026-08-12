@@ -331,7 +331,7 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             <button onclick="tradeModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
         </div>
         <!-- 거래 신청의 목적을 안내한다. -->
-        <p class="mt-1 text-sm text-sky-100/60">상대방에게 거래 신청을 보내고, 상대방이 승낙하면 거래 창이 열립니다.</p>
+        <p class="mt-1 text-sm text-sky-100/60">학생 두 명만 참여하는 1:1 거래입니다. 두 사람이 모두 승낙하면 즉시 거래가 성사되고 창이 닫힙니다.</p>
         <!-- 거래 상대를 선택한다. -->
         <label class="mt-5 block text-sm font-bold text-sky-100">거래 상대
             <select id="buyer" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select>
@@ -552,6 +552,16 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             <label class="text-sm font-bold text-sky-100">첨단자원<input id="grantAdvanced" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
         </div>
         <button id="grantSubmit" class="mt-5 w-full rounded-xl bg-yellow-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-yellow-300">무제한 지원하기</button>
+    </div>
+</dialog>
+
+<dialog id="studentInfoModal" class="dialog w-[min(92vw,470px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex items-center justify-between">
+            <p class="text-xs font-bold tracking-[.2em] text-cyan-200/70">CONNECTED COUNTRY</p>
+            <button onclick="studentInfoModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <div id="studentInfoContent" class="mt-3"></div>
     </div>
 </dialog>
 
@@ -845,21 +855,54 @@ function flyToPlayer(id){
 }
 
 function renderPlayerList(){
-    let now=Date.now(),students=players.filter(p=>p.role!=='teacher'),active=students.filter(p=>!p.lastSeen?.toDate||now-p.lastSeen.toDate().getTime()<35000);
+    // 접속한 학생을 동그란 국가 아이콘으로 표시하고, 아이콘을 누르면 상세 정보 창을 연다.
+    const now=Date.now();
+    const students=players.filter(p=>p.role!=='teacher');
+    const active=students.filter(p=>!p.lastSeen?.toDate||now-p.lastSeen.toDate().getTime()<35000);
     $('playerCount').textContent=active.length+'/'+students.length;
-    $('playerList').innerHTML=students.length?students.map(p=>{
-        let isActive=!p.lastSeen?.toDate||now-p.lastSeen.toDate().getTime()<35000;
-        return `<div class="flex items-center gap-2 rounded-xl border p-2 transition hover:bg-slate-800/50 ${p.id===uid?'border-cyan-300/60 bg-cyan-900/40':'border-sky-400/15 bg-slate-900/30'}">
-            <button onclick="window.focusNation('`+p.id+`')" class="flex min-w-0 flex-1 items-center gap-2 text-left hover:opacity-80">
-                <span class="text-xl">${safe(p.countryFlag||'🌐')}</span>
-                <span class="min-w-0"><b class="block truncate text-sm text-sky-50">${safe(p.country||'미배정')} · ${safe(p.displayName||'학생')}</b><small class="block truncate text-sky-100/60">출석번호 ${safe(p.studentNo||'미등록')} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
-            </button>
-            <button onclick="window.openChat('`+p.id+`')" class="rounded-lg bg-cyan-400/15 px-2 py-1 text-xs hover:bg-cyan-400/30 transition shadow-sm" title="1:1 채팅">💬</button>
-            <span class="h-2 w-2 rounded-full shadow-sm ${isActive?'bg-emerald-400':'bg-slate-600'}"></span>
-        </div>`
-    }).join(''):'<p class="text-sm text-sky-100/55">아직 접속한 학생이 없습니다.</p>'
+    $('playerList').innerHTML=active.length?`<div class="grid grid-cols-4 gap-3 sm:grid-cols-5">
+        ${active.map(p=>{
+            const level=levelFor(p.inventory||{},p.country||'').level;
+            const isMine=p.id===uid;
+            return `<button type="button" onclick="window.openStudentInfo('${p.id}')" class="group flex flex-col items-center gap-1.5 rounded-2xl p-1.5 transition hover:-translate-y-1 focus:outline-none" title="${safe(p.country||p.displayName||'학생')}">
+                <span class="relative grid h-14 w-14 place-items-center rounded-full border-2 ${isMine?'border-cyan-300 bg-cyan-300/20':'border-sky-300/30 bg-slate-900/70'} shadow-lg transition group-hover:scale-110 group-hover:border-cyan-300">
+                    <span class="text-3xl">${safe(p.countryFlag||'🌐')}</span>
+                    <span class="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-slate-900 bg-emerald-400"></span>
+                </span>
+                <span class="max-w-full truncate text-[11px] font-black text-sky-50">${safe(p.country||'미배정')}</span>
+                <span class="text-[10px] text-sky-100/55">Lv.${level}</span>
+            </button>`;
+        }).join('')}
+    </div>`:'<p class="text-sm text-sky-100/55 text-center py-4">현재 접속한 학생이 없습니다.</p>';
 }
 window.focusNation=flyToPlayer;
+window.openStudentInfo=id=>{
+    const player=players.find(p=>p.id===id);
+    if(!player||player.role==='teacher'||player.id===uid)return;
+    const level=levelFor(player.inventory||{},player.country||'').level;
+    $('studentInfoContent').innerHTML=`
+        <div class="text-center">
+            <div class="mx-auto grid h-24 w-24 place-items-center rounded-full border-4 border-cyan-300/50 bg-slate-900/70 text-5xl shadow-xl">${safe(player.countryFlag||'🌐')}</div>
+            <h2 class="mt-3 text-2xl font-black text-white">${safe(player.country||'미배정')}</h2>
+            <p class="mt-1 text-sm text-sky-100/60">${safe(player.displayName||'학생')} · 출석번호 ${safe(player.studentNo||'미등록')}</p>
+            <p class="mt-1 inline-block rounded-full bg-yellow-300 px-3 py-1 text-xs font-black text-slate-950">국가 Lv.${level}</p>
+        </div>
+        <div class="mt-5 grid grid-cols-2 gap-2 text-sm font-bold">
+            <div class="rounded-xl bg-yellow-300/10 p-3 text-yellow-200">💰 국고 ₩${fmt(player.balance)}</div>
+            <div class="rounded-xl bg-cyan-300/10 p-3 text-cyan-100">👷 노동 ${fmt(player.inventory?.labor)}</div>
+            <div class="rounded-xl bg-cyan-300/10 p-3 text-cyan-100">⛏️ 광물 ${fmt(player.inventory?.mineral)}</div>
+            <div class="rounded-xl bg-cyan-300/10 p-3 text-cyan-100">💧 수자원 ${fmt(player.inventory?.water)}</div>
+            <div class="rounded-xl bg-cyan-300/10 p-3 text-cyan-100">💡 기술 ${fmt(player.inventory?.technology)}</div>
+            <div class="rounded-xl bg-cyan-300/10 p-3 text-cyan-100">🧬 첨단 ${fmt(player.inventory?.advanced)}</div>
+        </div>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+            <button type="button" onclick="window.openStudentChatFromInfo('${player.id}')" class="rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md hover:bg-cyan-300">💬 채팅</button>
+            <button type="button" onclick="window.openStudentTradeFromInfo('${player.id}')" class="rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-3 font-black text-slate-950 shadow-md hover:opacity-90">🤝 거래</button>
+        </div>`;
+    $('studentInfoModal').showModal();
+};
+window.openStudentChatFromInfo=id=>{ $('studentInfoModal').close(); window.openChat(id); };
+window.openStudentTradeFromInfo=id=>{ $('studentInfoModal').close(); window.tradeWith(id); };
 
 function getCountryMapPosition(player){
     // 기존 학생 문서에 좌표가 없더라도 국가 데이터에서 위치를 찾아 지도에 표시한다.
@@ -1596,8 +1639,8 @@ function renderNewTradeHistoryCard(trade){
 }
 
 function getActiveTradeForPlayer(playerId){
-    // 현재 거래 중인 학생이 포함된 거래 문서를 찾는다.
-    return tradeRows.find(trade=>trade.type==='player_trade'&&trade.status==='negotiating'&&(trade.requesterId===playerId||trade.receiverId===playerId));
+    // 학생 한 명은 동시에 하나의 1:1 거래만 가질 수 있다.
+    return tradeRows.find(trade=>trade.type==='player_trade'&&['requested','negotiating'].includes(trade.status)&&Array.isArray(trade.participants)&&trade.participants.length===2&&(trade.requesterId===playerId||trade.receiverId===playerId));
 }
 
 function showTradeBusyMessage(playerName){
@@ -1614,6 +1657,10 @@ async function createTradeRequest(){
     const receiver=players.find(player=>player.id===receiverId);
     // 자기 자신이나 존재하지 않는 상대방에게는 거래 신청을 보낼 수 없다.
     if(!receiverId||receiverId===uid||!receiver)return $('tradeError').textContent='거래 상대를 선택하세요.';
+    if(receiver.role==='teacher')return $('tradeError').textContent='교사와는 학생 거래를 할 수 없습니다.';
+    if(receiver.lastSeen?.toDate&&Date.now()-receiver.lastSeen.toDate().getTime()>=35000)return $('tradeError').textContent='상대 학생이 현재 접속 중이 아닙니다.';
+    const pairBusy=tradeRows.find(trade=>trade.type==='player_trade'&&['requested','negotiating'].includes(trade.status)&&Array.isArray(trade.participants)&&trade.participants.length===2&&trade.participants.includes(uid)&&trade.participants.includes(receiverId));
+    if(pairBusy)return $('tradeError').textContent='두 학생 사이에 이미 진행 중인 1:1 거래가 있습니다.';
     // 신청자 본인이 이미 거래 중이면 새로운 거래를 시작할 수 없다.
     if(getActiveTradeForPlayer(uid)){
         $('tradeModal').close();
@@ -1702,55 +1749,63 @@ async function updateMyTradeOffer(trade,offerKey,value){
 }
 
 async function toggleTradeAcceptance(){
-    // 현재 거래 아이디가 없으면 수락 처리를 진행하지 않는다.
     if(!activeTradeId)return;
-    // 동일 버튼을 빠르게 여러 번 눌러 중복 요청이 발생하지 않도록 잠금 상태를 사용한다.
     if(window.tradeAcceptanceSaving===true)return;
     window.tradeAcceptanceSaving=true;
+    const tradeId=activeTradeId;
     try{
-        // 현재 거래 문서를 직접 읽는다.
-        const tradeRef=doc(db,'trades',activeTradeId);
-        const tradeSnap=await getDoc(tradeRef);
-        // 거래 문서가 없으면 수락을 중단한다.
-        if(!tradeSnap.exists())throw Error('현재 거래 정보를 찾을 수 없습니다.');
-        // 최신 거래 정보를 가져온다.
-        const trade=tradeSnap.data();
-        // 이미 완료되었거나 취소된 거래에는 수락할 수 없다.
-        if(trade.status!=='negotiating')throw Error('현재 거래를 진행할 수 없습니다.');
-        // 현재 사용자가 신청자인지 상대방인지 확인한다.
-        const requester=trade.requesterId===uid;
-        // 현재 사용자에 해당하는 수락 필드를 선택한다.
-        const field=requester?'requesterAccepted':'receiverAccepted';
-        // 현재 수락 상태를 반전한다.
-        const nextAccepted=trade[field]!==true;
-        // 거래 문서 하나만 직접 갱신하여 수락 버튼이 Firestore 트랜잭션 재시도에 막히지 않도록 한다.
-        await updateDoc(tradeRef,{[field]:nextAccepted,acceptChangedAt:serverTimestamp()});
-        // 내 화면에서 즉시 버튼 상태를 보여 준다.
-        $('tradeSessionAccept').textContent=nextAccepted?'수락 취소':'거래 수락';
-        // 두 사람이 모두 수락했을 때는 양쪽 브라우저 모두 최종 체결을 시도할 수 있게 한다. 실제 중복 체결은 Firestore 트랜잭션이 막는다.
-        if(nextAccepted){
-            const latestTradeSnap=await getDoc(tradeRef);
-            if(latestTradeSnap.exists()){
-                const latestTrade=latestTradeSnap.data();
-                if(latestTrade.status==='negotiating'&&latestTrade.requesterAccepted===true&&latestTrade.receiverAccepted===true){
-                    await finalizeTradeWithRetry(activeTradeId);
-                }
+        const result=await runTransaction(db,async tx=>{
+            const tradeRef=doc(db,'trades',tradeId);
+            const snap=await tx.get(tradeRef);
+            if(!snap.exists())throw Error('현재 거래 정보를 찾을 수 없습니다.');
+            const trade=snap.data();
+            if(trade.status!=='negotiating')throw Error('현재 거래를 진행할 수 없습니다.');
+            if(!Array.isArray(trade.participants)||trade.participants.length!==2||!trade.participants.includes(uid)||trade.participants.includes(''))throw Error('1:1 거래 정보가 올바르지 않습니다.');
+            if(trade.requesterId!==uid&&trade.receiverId!==uid)throw Error('이 거래의 참가자가 아닙니다.');
+            const mine=trade.requesterId===uid?'requesterAccepted':'receiverAccepted';
+            const nextMyAccepted=trade[mine]!==true;
+            const nextRequesterAccepted=trade.requesterId===uid?nextMyAccepted:trade.requesterAccepted===true;
+            const nextReceiverAccepted=trade.receiverId===uid?nextMyAccepted:trade.receiverAccepted===true;
+            if(!(nextRequesterAccepted&&nextReceiverAccepted)){
+                tx.update(tradeRef,{requesterAccepted:nextRequesterAccepted,receiverAccepted:nextReceiverAccepted,acceptChangedAt:serverTimestamp()});
+                return {completed:false};
             }
+            const tradeRoomId=trade.roomId||roomId;
+            const requesterRef=doc(db,`rooms/${tradeRoomId}/players/${trade.requesterId}`);
+            const receiverRef=doc(db,`rooms/${tradeRoomId}/players/${trade.receiverId}`);
+            const requesterSnap=await tx.get(requesterRef),receiverSnap=await tx.get(receiverRef);
+            if(!requesterSnap.exists()||!receiverSnap.exists())throw Error('거래 참가자 정보를 찾을 수 없습니다.');
+            const requester=requesterSnap.data(),receiver=receiverSnap.data();
+            const requesterOffer=normalizeTradeOffer(trade.requesterOffer),receiverOffer=normalizeTradeOffer(trade.receiverOffer);
+            if(requesterOffer.balance>(requester.balance||0))throw Error('신청자의 국고가 부족합니다.');
+            if(receiverOffer.balance>(receiver.balance||0))throw Error('상대방의 국고가 부족합니다.');
+            for(const resourceKey of R.map(item=>item[0])){
+                if(requesterOffer[resourceKey]>(requester.inventory?.[resourceKey]||0))throw Error(`신청자의 ${labels[resourceKey]}이(가) 부족합니다.`);
+                if(receiverOffer[resourceKey]>(receiver.inventory?.[resourceKey]||0))throw Error(`상대방의 ${labels[resourceKey]}이(가) 부족합니다.`);
+            }
+            const requesterInventory={...(requester.inventory||{})},receiverInventory={...(receiver.inventory||{})};
+            for(const resourceKey of R.map(item=>item[0])){
+                requesterInventory[resourceKey]=(requesterInventory[resourceKey]||0)-requesterOffer[resourceKey]+receiverOffer[resourceKey];
+                receiverInventory[resourceKey]=(receiverInventory[resourceKey]||0)-receiverOffer[resourceKey]+requesterOffer[resourceKey];
+            }
+            tx.update(requesterRef,{inventory:requesterInventory,balance:(requester.balance||0)-requesterOffer.balance+receiverOffer.balance});
+            tx.update(receiverRef,{inventory:receiverInventory,balance:(receiver.balance||0)-receiverOffer.balance+requesterOffer.balance});
+            tx.update(tradeRef,{requesterAccepted:true,receiverAccepted:true,status:'completed',completedAt:serverTimestamp()});
+            return {completed:true};
+        });
+        if(result?.completed){
+            if($('tradeSessionModal').open)$('tradeSessionModal').close();
+            activeTradeId='';
+            note('🤝 두 사람 모두 승낙했습니다. 거래가 성사되었습니다!');
         }
     }catch(error){
-        // 저장공간 또는 Firestore 오류가 발생해도 버튼 자체가 멈추지 않도록 사용자에게 명확하게 알린다.
-        const errorMessage=String(error?.message||error);
-        if(/quota exceeded/i.test(errorMessage)){
-            note('거래 수락 저장 중 일시적인 저장공간 오류가 발생했습니다. 잠시 후 다시 눌러주세요.',true);
-        }else{
-            note('거래 수락 처리 실패: '+errorMessage,true);
-        }
+        console.error('1:1 거래 수락/체결 실패',error);
+        const message=String(error?.message||error);
+        note('거래 처리 실패: '+message,true);
     }finally{
-        // 처리 완료 후 다시 버튼을 사용할 수 있도록 잠금을 해제한다.
         window.tradeAcceptanceSaving=false;
     }
 }
-
 async function cancelActiveTrade(){
     // 현재 거래가 존재하는 경우 거래를 취소한다.
     if(!activeTradeId)return;
@@ -1765,21 +1820,18 @@ async function finalizeTradeWithRetry(tradeId){
     // 거래 체결을 최대 세 번 재시도하여 순간적인 Firestore 동시 수정 충돌을 흡수한다.
     let lastError=null;
     // 짧은 지연을 두고 순차적으로 재시도한다.
-    for(let attempt=0;attempt<5;attempt++){
+    for(let attempt=0;attempt<3;attempt++){
         try{
-            // 어느 한쪽 브라우저에서든 최종 체결을 시도한다.
-            // 동시에 여러 브라우저가 호출해도 Firestore 트랜잭션이 한 번만 성공하도록 보장한다.
+            // 기존 원자적 거래 체결 함수를 호출한다.
             await finalizeTrade(tradeId);
+            // 거래 체결 함수가 정상 종료되면 즉시 반복을 끝낸다.
             return;
         }catch(error){
+            // 마지막 오류를 저장한다.
             lastError=error;
-            // 순간적인 동시 수정/네트워크 오류를 흡수하고 다시 시도한다.
-            await new Promise(resolve=>setTimeout(resolve,300*(attempt+1)));
+            // 다음 시도 전에 짧게 기다린다.
+            await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
         }
-    }
-    // 재시도 후에도 실패하면 거래를 자동 취소하지 않고 사용자에게 원인을 알린다.
-    if(activeTradeId===tradeId){
-        note('거래 체결에 실패했습니다. 거래 내용은 유지되므로 다시 수락할 수 있습니다.',true);
     }
     // 세 번 모두 실패한 경우에만 오류를 기록하고 거래 상태는 취소하지 않는다.
     console.error('거래 체결 재시도 실패',lastError);
@@ -1894,8 +1946,8 @@ function renderTrades(ts){
     // 현재 진행 중인 거래가 있으면 양쪽 화면에서 거래 창을 연다.
     const activeTrade=newTrades.find(trade=>trade.status==='negotiating'&&(trade.requesterId===uid||trade.receiverId===uid));
     if(activeTrade){
-        // 양쪽 모두 수락한 순간 어느 한쪽 브라우저에서든 거래 체결 트랜잭션을 실행한다.
-        if(activeTrade.requesterAccepted===true&&activeTrade.receiverAccepted===true)finalizeTradeWithRetry(activeTrade.id);
+        // 양쪽 모두 수락한 순간 거래 체결 트랜잭션을 실행한다.
+        // 최종 체결은 수락 버튼의 원자적 트랜잭션에서 처리한다.
         // 거래 창의 양쪽 정보와 수락 상태를 실시간으로 갱신한다.
         renderTradeSession(activeTrade);
     }
