@@ -1,46 +1,442 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Nation Trade · 국가 성장 무역 게임</title>
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
-:root{--ink:#eaf2ff;--muted:#9fb0c9;--panel:#14233e;--panel2:#1b3154;--gold:#f8c94d;--cyan:#5de0e6;--danger:#ff7676}
-*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 15% 0,#244e7d 0,transparent 32%),linear-gradient(145deg,#071426,#102a4a 65%,#092239);color:var(--ink);font-family:ui-sans-serif,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;min-height:100vh}.glass{background:linear-gradient(145deg,rgba(27,49,84,.96),rgba(12,29,53,.96));border:1px solid rgba(151,202,255,.2);box-shadow:0 18px 45px rgba(0,0,0,.24)}.resource{background:linear-gradient(145deg,rgba(26,58,97,.95),rgba(16,37,68,.95));border:1px solid rgba(151,202,255,.16)}.worldmap{position:relative;overflow:hidden;border-radius:22px;min-height:360px;background:linear-gradient(rgba(91,224,230,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(91,224,230,.12) 1px,transparent 1px),radial-gradient(ellipse at 23% 34%,#466e54 0 6%,transparent 6.4%),radial-gradient(ellipse at 33% 60%,#466e54 0 5%,transparent 5.5%),radial-gradient(ellipse at 52% 31%,#466e54 0 8%,transparent 8.5%),radial-gradient(ellipse at 64% 52%,#466e54 0 7%,transparent 7.5%),radial-gradient(ellipse at 77% 32%,#466e54 0 11%,transparent 11.5%),radial-gradient(ellipse at 86% 65%,#466e54 0 4%,transparent 4.5%),#0c6381;background-size:36px 36px,36px 36px,auto,auto,auto,auto,auto,auto,auto}.region-pin{position:absolute;transform:translate(-50%,-50%);border:2px solid #fff;background:#f8c94d;color:#14233e;width:31px;height:31px;border-radius:999px;font-weight:900;box-shadow:0 0 0 5px rgba(248,201,77,.25)}.region-pin:hover,.region-pin.active{background:#5de0e6;transform:translate(-50%,-50%) scale(1.18)}button:disabled{cursor:not-allowed;filter:grayscale(.8);opacity:.5}.stage{background:linear-gradient(135deg,#f8c94d,#ff9354);color:#172235}.toast{position:fixed;right:1rem;bottom:1rem;z-index:50;max-width:360px}.dialog{background:#102747;color:var(--ink);border:1px solid rgba(151,202,255,.3)}dialog::backdrop{background:rgba(0,10,27,.72)}input,select{background:#0b1d36!important;color:var(--ink)!important;border-color:#3f628d!important} .chartbox{height:280px}#liveMap{height:470px;border-radius:18px;overflow:hidden;background:#0c6381}.leaflet-container{font-family:ui-sans-serif,system-ui;background:#0c6381}.leaflet-popup-content-wrapper{border-radius:12px;background:#102747;color:#eaf2ff}.leaflet-popup-content{margin:12px}.leaflet-popup-tip{background:#102747}.nation-marker{border:0!important;background:transparent!important}.trade-ship{font-size:27px;filter:drop-shadow(0 2px 3px #000);transition:transform 2.4s linear;pointer-events:none}.map-dot{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#f8c94d;border:2px solid white;box-shadow:0 2px 10px #000;color:#11233f;font-size:16px}.me-dot{background:#5de0e6}@media(max-width:640px){.chartbox{height:220px}}
+:root {
+    --ink: #eaf2ff;
+    --muted: #9fb0c9;
+    --panel: #14233e;
+    --panel2: #1b3154;
+    --gold: #f8c94d;
+    --cyan: #5de0e6;
+    --danger: #ff7676;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: radial-gradient(circle at 15% 0, #244e7d 0, transparent 32%),
+                linear-gradient(145deg, #071426, #102a4a 65%, #092239);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(15, 30, 50, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(93, 224, 230, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(93, 224, 230, 0.6); }
+
+/* Glassmorphism Enhancements */
+.glass {
+    background: linear-gradient(145deg, rgba(27,49,84,.85), rgba(12,29,53,.9));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(151,202,255,.25);
+    box-shadow: 0 18px 45px rgba(0,0,0,.3);
+}
+
+.resource {
+    background: linear-gradient(145deg, rgba(26,58,97,.95), rgba(16,37,68,.95));
+    border: 1px solid rgba(151,202,255,.16);
+    transition: all 0.3s ease;
+}
+.resource:hover {
+    transform: translateY(-4px);
+    border-color: rgba(93,224,230,.7);
+    box-shadow: 0 8px 20px rgba(93,224,230,0.15);
+}
+
+/* Map & UI Enhancements */
+.worldmap {
+    position: relative; overflow: hidden; border-radius: 22px; min-height: 360px;
+    background: linear-gradient(rgba(91,224,230,.12) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(91,224,230,.12) 1px, transparent 1px),
+                #0c6381;
+    background-size: 36px 36px, 36px 36px;
+}
+button:disabled { cursor: not-allowed; filter: grayscale(.8); opacity: .5; }
+.stage { background: linear-gradient(135deg, #f8c94d, #ff9354); color: #172235; }
+.toast {
+    position: fixed; right: 1rem; bottom: 1rem; z-index: 50; max-width: 360px;
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.dialog {
+    background: linear-gradient(145deg, rgba(16,39,71,0.98), rgba(11,29,54,0.98));
+    backdrop-filter: blur(16px);
+    color: var(--ink);
+    border: 1px solid rgba(151,202,255,.2);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+}
+dialog::backdrop {
+    background: rgba(0,10,27,.6);
+    backdrop-filter: blur(4px);
+}
+input, select { background: #0b1d36 !important; color: var(--ink) !important; border-color: #3f628d !important; }
+
+/* Chart & Map Containers */
+.chartbox { height: 280px; }
+#liveMap { height: 470px; border-radius: 18px; overflow: hidden; background: #0c6381; }
+.leaflet-container { font-family: ui-sans-serif, system-ui; background: #0c6381; }
+.leaflet-popup-content-wrapper { border-radius: 12px; background: rgba(16,39,71,0.95); backdrop-filter: blur(8px); color: #eaf2ff; border: 1px solid rgba(93,224,230,0.2); }
+.leaflet-popup-content { margin: 12px; }
+.leaflet-popup-tip { background: rgba(16,39,71,0.95); }
+.nation-marker { border: 0 !important; background: transparent !important; }
+.trade-ship { font-size: 27px; filter: drop-shadow(0 2px 3px #000); transition: transform 2.4s linear; pointer-events: none; z-index: 1000 !important; }
+.map-dot {
+    display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+    background: #f8c94d; border: 2px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    color: #11233f; font-size: 16px; transition: transform 0.2s;
+}
+.map-dot:hover { transform: scale(1.1); }
+.me-dot { background: #5de0e6; box-shadow: 0 0 15px rgba(93,224,230,0.6); }
+
+@media(max-width:640px) { .chartbox { height: 220px; } }
 </style>
 </head>
 <body>
-<header class="sticky top-0 z-30 border-b border-sky-200/10 bg-[#08182d]/90 backdrop-blur"><div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3"><div class="flex items-center gap-3"><div class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-yellow-300 to-orange-500 text-xl">♜</div><div><h1 class="font-black tracking-wide">NATION TRADE</h1><p class="text-xs text-sky-200/60">국가 성장 무역 시뮬레이션</p></div></div><div id="connection" class="rounded-full border border-sky-300/20 bg-sky-950/50 px-3 py-1.5 text-xs font-bold text-sky-100">연결 중…</div></div></header>
-<main class="mx-auto max-w-7xl px-4 py-6"><div id="myNationBanner" class="fixed right-4 top-20 z-20 hidden rounded-xl border border-cyan-200/25 bg-[#102a4b]/95 px-4 py-3 shadow-xl"><p class="text-[10px] font-bold tracking-widest text-cyan-200">MY NATION</p><p id="myNationName" class="mt-1 font-black">-</p><p id="myNickname" class="mt-1 text-xs text-cyan-100/75">-</p></div>
-<section id="lobby" class="mx-auto mt-4 max-w-xl rounded-3xl p-6 sm:p-8 glass"><div class="text-center"><div class="text-5xl">🌐</div><h2 id="lobbyTitle" class="mt-4 text-2xl font-black">무역 국가에 입장하세요</h2><p id="lobbyDesc" class="mt-2 text-sm text-sky-100/70">4자리 방 코드로 친구들의 국가와 거래합니다.</p></div><div class="mt-6 rounded-2xl border border-cyan-200/15 bg-slate-950/25 p-4"><p class="text-sm font-black">학생 / 교사 식별</p><p class="mt-1 text-xs text-sky-100/55">반·번호로 입장합니다. 같은 방 코드에서는 이전 국가 정보가 이어지고, 다른 방 코드는 새 게임으로 시작합니다.</p><div class="mt-3 grid grid-cols-3 gap-2"><input id="gradeInput" inputmode="numeric" maxlength="2" class="rounded-xl border px-3 py-2" placeholder="학년"><input id="classInput" inputmode="numeric" maxlength="2" class="rounded-xl border px-3 py-2" placeholder="반"><input id="numberInput" inputmode="numeric" maxlength="2" class="rounded-xl border px-3 py-2" placeholder="번호"></div><button id="authBtn" class="mt-3 w-full rounded-xl border border-cyan-300/35 bg-cyan-300/10 px-3 py-2 text-sm font-black text-cyan-100">반·번호로 로그인</button><p id="authStatus" class="mt-2 text-xs text-sky-100/55">로그인 후 교사 또는 학생 모드를 선택하세요.</p></div><div class="mt-6 grid grid-cols-2 rounded-xl bg-[#091b34] p-1"><button id="studentTab" class="rounded-lg bg-sky-200 px-3 py-2.5 text-sm font-extrabold text-slate-900">학생 입장</button><button id="teacherTab" class="rounded-lg px-3 py-2.5 text-sm font-bold text-sky-100/70">교사 방 만들기</button></div><label id="codeWrap" class="mt-5 block text-sm font-bold">4자리 초대 코드<input id="codeInput" inputmode="numeric" maxlength="4" class="mt-1 w-full rounded-xl border px-4 py-3 text-center text-2xl font-black tracking-[.35em] outline-none" placeholder="1234"></label><label class="mt-4 block text-sm font-bold"><span id="nameLabel">학생 이름</span><input id="nameInput" maxlength="20" class="mt-1 w-full rounded-xl border px-4 py-3 outline-none" placeholder="예: 홍길동"></label><button id="enterBtn" class="mt-6 w-full rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 px-4 py-3.5 font-black text-slate-950 shadow-lg hover:brightness-110">입장하기</button><p id="lobbyError" class="mt-3 min-h-5 text-center text-sm text-rose-300"></p><p class="mt-4 text-center text-xs text-sky-100/45">교사: 새 방과 4자리 코드 생성 · 학생: 코드 입력 후 국가 배정 시작</p></section>
 
-<section id="game" class="hidden space-y-5">
- <div id="paused" class="hidden rounded-xl border border-amber-300/40 bg-amber-200/15 px-4 py-3 font-bold text-amber-100">⏸ 교사가 무역소를 잠시 멈췄습니다. 거래 제안과 수락이 비활성화됩니다.</div>
- <section class="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-  <div class="rounded-3xl p-5 glass"><div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[.2em] text-cyan-200/70">나의 국가</p><h2 id="nationName" class="mt-1 text-2xl font-black">-</h2><p id="stageText" class="mt-2 text-sm text-sky-100/65">성장 현황을 불러오는 중…</p></div><button id="levelBtn" class="stage rounded-2xl px-4 py-3 text-center shadow" onclick="conditionsModal.showModal()"><p class="text-xs font-black">NATION LEVEL · 클릭</p><p id="stageNumber" class="text-3xl font-black">1</p></button></div><div class="mt-5 h-3 overflow-hidden rounded-full bg-slate-950/60"><div id="progress" class="h-full rounded-full bg-gradient-to-r from-cyan-300 to-yellow-300 transition-all"></div></div><p id="progressDetail" class="mt-2 text-xs text-sky-100/55"></p></div>
-  <div class="rounded-3xl p-5 glass"><p class="text-xs font-bold uppercase tracking-[.2em] text-yellow-200/70">국고</p><p id="balance" class="mt-2 text-4xl font-black text-yellow-300">₩0</p><p class="mt-2 text-sm text-sky-100/60">자원을 수출하고 필요한 자원을 수입해 국가를 성장시키세요.</p><div class="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-3"><div class="flex items-center justify-between"><b class="text-sm text-emerald-200">자동 국고 수입</b><span id="incomeStatus" class="text-xs font-bold text-emerald-200">확인 중</span></div><div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-950/50"><div id="incomeTimerBar" class="h-full bg-emerald-300 transition-all"></div></div><p id="incomeTimerText" class="mt-2 text-xs text-sky-100/70">다음 지급까지 계산 중…</p><p id="incomeEstimate" class="mt-1 text-xs text-yellow-200"></p></div></div>
- </section>
- <section class="rounded-3xl p-5 glass"><div class="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p class="text-xs font-bold tracking-[.2em] text-cyan-200/70">LIVE WORLD MAP</p><h2 class="mt-1 text-xl font-black">세계 무역 현황</h2><p class="mt-1 text-sm text-sky-100/60">다른 국가 표식을 클릭하면 국가 정보 확인 및 무역 제안을 시작할 수 있습니다.</p></div><div class="rounded-lg bg-slate-950/35 px-3 py-2 text-xs text-sky-100/65">🗺 OpenStreetMap · 실시간 국가 위치</div></div><div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_290px]"><div id="liveMap"></div><aside class="rounded-2xl border border-sky-200/15 bg-slate-950/25 p-4 flex flex-col gap-4 max-h-[470px] overflow-hidden"><div class="flex-1 overflow-y-auto"><div class="flex items-center justify-between sticky top-0 bg-slate-900 z-10 pb-2"><h3 class="font-black">접속 국가</h3><span id="playerCount" class="rounded-full bg-cyan-300 px-2 py-1 text-xs font-black text-slate-950">0</span></div><p class="mt-1 text-xs text-sky-100/55 mb-2">국가명을 클릭하면 지도에서 위치를 확인합니다.</p><div id="playerList" class="space-y-2 pr-1"></div></div><div class="border-t border-sky-200/15 pt-3"><h3 class="font-black text-sm mb-2">🏆 국고 Top 5</h3><div id="cashRank" class="space-y-1 text-xs"></div></div><div class="border-t border-sky-200/15 pt-3"><h3 class="font-black text-sm mb-2">📜 실시간 거래</h3><div id="mapTrades" class="max-h-24 overflow-y-auto space-y-1 text-xs"></div></div></aside></div></section>
- <section><div class="mb-3 flex items-center justify-between"><h2 class="text-lg font-black">국가 핵심 자원</h2><div><button id="convertBtn" class="mr-2 rounded-xl border border-cyan-300/30 px-4 py-2.5 text-sm font-black">🔁 국내 교환</button><button id="openTrade" class="trade-action rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 text-sm font-black text-slate-950">🤝 무역 제안</button></div></div><div id="resources" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"></div></section>
- <section class="grid gap-5 lg:grid-cols-2"><div class="rounded-2xl p-5 glass"><h2 class="font-black">📨 받은 무역 제안 <span id="incomingCount" class="ml-1 rounded-full bg-cyan-300 px-2 py-0.5 text-xs text-slate-950">0</span></h2><div id="incoming" class="mt-4 space-y-3"></div></div><div class="rounded-2xl p-5 glass"><h2 class="font-black">📤 보낸 무역 제안</h2><div id="outgoing" class="mt-4 space-y-3"></div></div></section>
- <section class="rounded-2xl p-5 glass"><div class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="font-black">📈 국제 자원 시장</h2><p class="mt-1 text-xs text-sky-100/55">체결된 거래의 단가 흐름입니다.</p></div><select id="marketSelect" class="rounded-lg border px-3 py-2 text-sm"></select></div><div class="chartbox mt-4"><canvas id="marketChart"></canvas></div></section>
- <section id="teacherPanel" class="hidden rounded-2xl border border-yellow-300/25 bg-yellow-200/10 p-5"><div class="flex flex-wrap items-center justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-widest text-yellow-200/70">Teacher control room</p><h2 class="mt-1 text-lg font-black">교사 통제실</h2><p class="mt-2 text-sm text-yellow-50/80">학생 초대 코드: <span id="teacherCode" class="ml-1 rounded-lg bg-slate-950/60 px-3 py-1 font-mono text-lg font-black tracking-[.2em] text-yellow-300">----</span><button id="copyCode" class="ml-2 rounded-lg border border-yellow-300/30 px-2 py-1 text-xs font-bold">복사</button></p></div><button id="grantBtn" class="rounded-xl bg-yellow-300 px-4 py-2.5 font-black text-slate-950">학생 지원</button><button id="toggleIncome" class="rounded-xl bg-emerald-600 px-4 py-2.5 font-black text-white">수입 ON/OFF</button><button id="toggleTrading" class="rounded-xl bg-violet-500 px-4 py-2.5 font-black text-white">무역소 상태 변경</button></div><div class="mt-5 border-t border-yellow-100/15 pt-4"><div class="flex items-center justify-between"><h3 class="font-black">📡 실시간 거래 관제</h3><span id="teacherTradeCount" class="text-xs text-yellow-100/70">최근 거래</span></div><div id="teacherTrades" class="mt-3 grid max-h-72 gap-2 overflow-y-auto md:grid-cols-2"></div></div><div class="mt-5 border-t border-yellow-100/15 pt-4"><div class="flex items-center justify-between"><h3 class="font-black">💬 1:1 채팅 기록</h3><span class="text-xs text-yellow-100/65">교사용 열람</span></div><div id="teacherChats" class="mt-3 max-h-64 space-y-2 overflow-y-auto"></div></div><div class="mt-5 border-t border-yellow-100/15 pt-4"><div class="flex items-center justify-between"><h3 class="font-black">👥 학생 관리</h3><span class="text-xs text-yellow-100/65">초기화하면 계정은 유지되고, 이 방의 국가·자원·단계만 새로 시작합니다.</span></div><div id="teacherPlayers" class="mt-3 grid gap-2 md:grid-cols-2"></div></div></section>
-</section></main>
-<dialog id="tradeModal" class="dialog w-[min(92vw,520px)] rounded-2xl p-0 shadow-2xl"><div class="p-6"><div class="flex items-center justify-between"><h2 class="text-xl font-black">새 무역 제안</h2><button onclick="tradeModal.close()" class="text-xl text-sky-100/70">×</button></div><p class="mt-1 text-sm text-sky-100/60">내 자원을 다른 국가에 판매합니다.</p><div class="mt-5 grid gap-4"><label class="text-sm font-bold">거래 상대<select id="buyer" class="mt-1 w-full rounded-lg border p-3 bg-[#0b1d36] text-white"></select></label><label class="text-sm font-bold">판매 자원<select id="item" class="mt-1 w-full rounded-lg border p-3 bg-[#0b1d36] text-white"></select></label><div class="grid grid-cols-2 gap-3"><label class="text-sm font-bold">수량<input id="quantity" type="number" min="1" value="1" class="mt-1 w-full rounded-lg border p-3 bg-[#0b1d36] text-white"></label><label class="text-sm font-bold">총 거래 금액 (국고)<input id="price" type="number" min="1" value="100" class="mt-1 w-full rounded-lg border p-3 bg-[#0b1d36] text-white"></label></div></div><p id="tradeError" class="mt-3 min-h-5 text-sm text-rose-300"></p><button id="sendTrade" class="trade-action mt-3 w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950">제안 보내기</button></div></dialog>
-<dialog id="teacherRoomModal" class="dialog w-[min(94vw,620px)] rounded-2xl p-0 shadow-2xl"><div class="p-6"><div class="flex justify-between"><div><p class="text-xs font-bold text-yellow-200">TEACHER ROOM LIBRARY</p><h2 class="mt-1 text-xl font-black">무역 교실 관리</h2><p class="text-sm text-sky-100/60">새 방을 만들거나 저장된 방에 재입장합니다.</p></div><button onclick="teacherRoomModal.close()" class="text-2xl">×</button></div><button id="newRoomBtn" class="mt-5 w-full rounded-xl bg-yellow-300 px-4 py-3 font-black text-slate-950">＋ 새 무역 교실 만들기</button><h3 class="mt-6 font-black">저장된 무역 교실</h3><div id="savedRoomList" class="mt-3 max-h-72 space-y-2 overflow-y-auto"></div></div></dialog><dialog id="conditionsModal" class="dialog w-[min(94vw,800px)] rounded-2xl p-0"><div class="p-6"><div class="flex justify-between"><h2 class="text-xl font-black">국가 레벨 단계별 기준 (1~8)</h2><button onclick="conditionsModal.close()" class="text-2xl">×</button></div><div id="conditionsBody" class="mt-4 text-sm leading-7 text-sky-100/80 overflow-x-auto"></div></div></dialog><dialog id="convertModal" class="dialog w-[min(94vw,500px)] rounded-2xl p-0"><div class="p-6"><div class="flex justify-between"><h2 class="text-xl font-black">국내 자원 교환</h2><button onclick="convertModal.close()" class="text-2xl">×</button></div><p class="mt-2 text-sm text-sky-100/65">노동력 100을 사용해 자원을 얻습니다. 노동력 100당 광물 30 · 수자원 10 · 기술 5 · 첨단 1</p><div class="mt-4 grid gap-2" id="convertChoices"></div></div></dialog><dialog id="chatListModal" class="dialog w-[min(94vw,520px)] rounded-2xl p-0"><div class="p-6"><div class="flex justify-between"><h2 class="text-xl font-black">내 1:1 채팅방</h2><button onclick="chatListModal.close()" class="text-2xl">×</button></div><div id="chatRoomList" class="mt-4 max-h-96 space-y-2 overflow-y-auto"></div></div></dialog><dialog id="leaderModal" class="dialog w-[min(94vw,540px)] rounded-2xl p-0"><div class="p-6"><div class="flex justify-between"><h2 id="leaderTitle" class="text-xl font-black">자원 보유 상위 국가</h2><button onclick="leaderModal.close()" class="text-2xl">×</button></div><p class="mt-1 text-sm text-sky-100/60">친구를 골라 바로 대화하거나 거래를 시작하세요.</p><div id="leaderList" class="mt-4 space-y-2"></div></div></dialog><dialog id="grantModal" class="dialog w-[min(94vw,520px)] rounded-2xl p-0"><div class="p-6"><div class="flex justify-between"><h2 class="text-xl font-black">교사 자원 지원</h2><button onclick="grantModal.close()" class="text-2xl">×</button></div><p class="mt-2 text-sm text-sky-100/65">선택한 학생에게 자원을 즉시 지급합니다.</p><label class="mt-4 block text-sm font-bold">학생<select id="grantStudent" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></select></label><div class="mt-3 grid grid-cols-2 gap-3"><label class="text-sm font-bold">국고 지급<input id="grantCash" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></label><label class="text-sm font-bold">노동력<input id="grantLabor" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></label><label class="text-sm font-bold">광물 지급<input id="grantMineral" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></label><label class="text-sm font-bold">수자원<input id="grantWater" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></label><label class="text-sm font-bold">기술자원<input id="grantTechnology" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></label><label class="text-sm font-bold">첨단자원<input id="grantAdvanced" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border p-3 bg-[#0b1d36] text-white"></label></div><button id="grantSubmit" class="mt-5 w-full rounded-xl bg-yellow-300 px-4 py-3 font-black text-slate-950">무제한 지원하기</button></div></dialog><dialog id="chatModal" class="dialog w-[min(94vw,510px)] rounded-2xl p-0 shadow-2xl"><div class="p-5"><div class="flex items-center justify-between"><div><p class="text-xs font-bold tracking-widest text-cyan-200">PRIVATE CHANNEL</p><h2 id="chatTitle" class="mt-1 text-lg font-black">1:1 채팅</h2></div><button onclick="chatModal.close()" class="text-2xl">×</button></div><div id="chatMessages" class="mt-4 h-72 space-y-2 overflow-y-auto rounded-xl border border-sky-200/15 bg-slate-950/30 p-3"></div><div class="mt-3 flex gap-2"><input id="chatInput" maxlength="250" class="min-w-0 flex-1 rounded-xl border px-3 py-2 bg-[#0b1d36] text-white" placeholder="메시지를 입력하세요"><button id="sendChat" class="rounded-xl bg-cyan-400 px-4 py-2 font-black text-slate-950">전송</button></div><button id="chatTradeBtn" class="mt-3 w-full rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 font-black text-slate-950">🤝 이 학생과 바로 거래하기</button><p class="mt-2 text-xs text-sky-100/45">교사는 수업 안전을 위해 모든 1:1 채팅 기록을 확인할 수 있습니다.</p></div></dialog><div id="toast" class="toast hidden rounded-xl border border-sky-200/20 bg-[#102a4b] p-4 text-sm shadow-2xl"></div><button id="quickChat" class="fixed bottom-5 left-5 z-20 hidden rounded-full bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 shadow-xl">💬 채팅</button>
+<header class="sticky top-0 z-30 border-b border-sky-200/10 bg-[#08182d]/80 backdrop-blur-md shadow-sm">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center gap-3">
+            <div class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-yellow-300 to-orange-500 text-xl shadow-md">♜</div>
+            <div>
+                <h1 class="font-black tracking-wide">NATION TRADE</h1>
+                <p class="text-xs text-sky-200/60">국가 성장 무역 시뮬레이션</p>
+            </div>
+        </div>
+        <div id="connection" class="rounded-full border border-sky-300/20 bg-sky-950/50 px-3 py-1.5 text-xs font-bold text-sky-100 backdrop-blur-sm">연결 중…</div>
+    </div>
+</header>
+
+<main class="mx-auto max-w-7xl px-4 py-6">
+    <div id="myNationBanner" class="fixed right-4 top-20 z-20 hidden rounded-xl border border-cyan-200/25 bg-[#102a4b]/95 backdrop-blur-md px-4 py-3 shadow-xl">
+        <p class="text-[10px] font-bold tracking-widest text-cyan-200">MY NATION</p>
+        <p id="myNationName" class="mt-1 font-black">-</p>
+        <p id="myNickname" class="mt-1 text-xs text-cyan-100/75">-</p>
+    </div>
+
+    <section id="lobby" class="mx-auto mt-4 max-w-xl rounded-3xl p-6 sm:p-8 glass transition-all">
+        <div class="text-center">
+            <div class="text-5xl">🌐</div>
+            <h2 id="lobbyTitle" class="mt-4 text-2xl font-black">무역 국가에 입장하세요</h2>
+            <p id="lobbyDesc" class="mt-2 text-sm text-sky-100/70">4자리 방 코드로 친구들의 국가와 거래합니다.</p>
+        </div>
+        <div class="mt-6 rounded-2xl border border-cyan-200/15 bg-slate-950/40 p-4">
+            <p class="text-sm font-black text-cyan-100">학생 / 교사 식별</p>
+            <p class="mt-1 text-xs text-sky-100/60">반·번호로 입장합니다. 같은 방 코드에서는 이전 국가 정보가 이어지고, 다른 방 코드는 새 게임으로 시작합니다.</p>
+            <div class="mt-3 grid grid-cols-3 gap-2">
+                <input id="gradeInput" inputmode="numeric" maxlength="2" class="rounded-xl border px-3 py-2 transition hover:border-cyan-400/50 focus:border-cyan-400" placeholder="학년">
+                <input id="classInput" inputmode="numeric" maxlength="2" class="rounded-xl border px-3 py-2 transition hover:border-cyan-400/50 focus:border-cyan-400" placeholder="반">
+                <input id="numberInput" inputmode="numeric" maxlength="2" class="rounded-xl border px-3 py-2 transition hover:border-cyan-400/50 focus:border-cyan-400" placeholder="번호">
+            </div>
+            <button id="authBtn" class="mt-3 w-full rounded-xl border border-cyan-300/35 bg-cyan-300/10 px-3 py-2 text-sm font-black text-cyan-100 transition hover:bg-cyan-300/20">반·번호로 로그인</button>
+            <p id="authStatus" class="mt-2 text-xs text-sky-100/55">로그인 후 교사 또는 학생 모드를 선택하세요.</p>
+        </div>
+        <div class="mt-6 grid grid-cols-2 rounded-xl bg-[#091b34] p-1 shadow-inner">
+            <button id="studentTab" class="rounded-lg bg-sky-200 px-3 py-2.5 text-sm font-extrabold text-slate-900 transition hover:opacity-90">학생 입장</button>
+            <button id="teacherTab" class="rounded-lg px-3 py-2.5 text-sm font-bold text-sky-100/70 transition hover:text-sky-100">교사 방 만들기</button>
+        </div>
+        <label id="codeWrap" class="mt-5 block text-sm font-bold">4자리 초대 코드
+            <input id="codeInput" inputmode="numeric" maxlength="4" class="mt-1 w-full rounded-xl border px-4 py-3 text-center text-2xl font-black tracking-[.35em] outline-none transition hover:border-cyan-400/50 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" placeholder="1234">
+        </label>
+        <label class="mt-4 block text-sm font-bold"><span id="nameLabel">학생 이름</span>
+            <input id="nameInput" maxlength="20" class="mt-1 w-full rounded-xl border px-4 py-3 outline-none transition hover:border-cyan-400/50 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" placeholder="예: 홍길동">
+        </label>
+        <button id="enterBtn" class="mt-6 w-full rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 px-4 py-3.5 font-black text-slate-950 shadow-lg transition-transform hover:scale-[1.02] hover:shadow-cyan-400/25">입장하기</button>
+        <p id="lobbyError" class="mt-3 min-h-5 text-center text-sm text-rose-300 font-bold"></p>
+        <p class="mt-4 text-center text-xs text-sky-100/45">교사: 새 방과 4자리 코드 생성 · 학생: 코드 입력 후 국가 배정 시작</p>
+    </section>
+
+    <section id="game" class="hidden space-y-5 animate-[fadeIn_0.5s_ease-out]">
+        <div id="paused" class="hidden rounded-xl border border-amber-300/40 bg-amber-200/15 px-4 py-3 font-bold text-amber-100 backdrop-blur-sm">⏸ 교사가 무역소를 잠시 멈췄습니다. 거래 제안과 수락이 비활성화됩니다.</div>
+        
+        <section class="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+            <div class="rounded-3xl p-5 glass">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[.2em] text-cyan-200/70">나의 국가</p>
+                        <h2 id="nationName" class="mt-1 text-2xl font-black text-white">-</h2>
+                        <p id="stageText" class="mt-2 text-sm text-sky-100/65">성장 현황을 불러오는 중…</p>
+                    </div>
+                    <button id="levelBtn" class="stage rounded-2xl px-4 py-3 text-center shadow-lg transition-transform hover:scale-105" onclick="conditionsModal.showModal()">
+                        <p class="text-xs font-black">NATION LEVEL · 클릭</p>
+                        <p id="stageNumber" class="text-3xl font-black">1</p>
+                    </button>
+                </div>
+                <div class="mt-5 h-3 overflow-hidden rounded-full bg-slate-950/60 inset-shadow">
+                    <div id="progress" class="h-full rounded-full bg-gradient-to-r from-cyan-300 to-yellow-300 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(93,224,230,0.5)]"></div>
+                </div>
+                <p id="progressDetail" class="mt-2 text-xs text-sky-100/55 flex flex-wrap gap-2"></p>
+            </div>
+            
+            <div class="rounded-3xl p-5 glass">
+                <p class="text-xs font-bold uppercase tracking-[.2em] text-yellow-200/70">국고</p>
+                <p id="balance" class="mt-2 text-4xl font-black text-yellow-300 drop-shadow-md">₩0</p>
+                <p class="mt-2 text-sm text-sky-100/60">자원을 수출하고 필요한 자원을 수입해 국가를 성장시키세요.</p>
+                <div class="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-3 backdrop-blur-sm">
+                    <div class="flex items-center justify-between">
+                        <b class="text-sm text-emerald-200">자동 국고 수입</b>
+                        <span id="incomeStatus" class="text-xs font-bold text-emerald-200">확인 중</span>
+                    </div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-950/50">
+                        <div id="incomeTimerBar" class="h-full bg-emerald-300 transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(110,231,183,0.6)]"></div>
+                    </div>
+                    <p id="incomeTimerText" class="mt-2 text-xs text-sky-100/70">다음 지급까지 계산 중…</p>
+                    <p id="incomeEstimate" class="mt-1 text-xs text-yellow-200 font-bold"></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="rounded-3xl p-5 glass">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <p class="text-xs font-bold tracking-[.2em] text-cyan-200/70">LIVE WORLD MAP</p>
+                    <h2 class="mt-1 text-xl font-black text-white">세계 무역 현황</h2>
+                    <p class="mt-1 text-sm text-sky-100/60">다른 국가 표식을 클릭하면 국가 정보 확인 및 무역 제안을 시작할 수 있습니다.</p>
+                </div>
+                <div class="rounded-lg bg-slate-950/35 px-3 py-2 text-xs text-sky-100/65 backdrop-blur-sm border border-sky-200/10">🗺 OpenStreetMap · 실시간 국가 위치</div>
+            </div>
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_290px]">
+                <div id="liveMap" class="shadow-inner border border-sky-200/20"></div>
+                <aside class="rounded-2xl border border-sky-200/15 bg-slate-950/40 p-4 flex flex-col gap-4 max-h-[470px] overflow-hidden backdrop-blur-sm">
+                    <div class="flex-1 overflow-y-auto pr-1">
+                        <div class="flex items-center justify-between sticky top-0 bg-slate-950/90 backdrop-blur-md z-10 pb-2">
+                            <h3 class="font-black text-white">접속 국가</h3>
+                            <span id="playerCount" class="rounded-full bg-cyan-300 px-2 py-1 text-xs font-black text-slate-950 shadow-sm">0</span>
+                        </div>
+                        <p class="mt-1 text-xs text-sky-100/55 mb-2">국가명을 클릭하면 지도에서 위치를 확인합니다.</p>
+                        <div id="playerList" class="space-y-2"></div>
+                    </div>
+                    <div class="border-t border-sky-200/15 pt-3">
+                        <h3 class="font-black text-sm mb-2 text-yellow-100">🏆 국고 Top 5</h3>
+                        <div id="cashRank" class="space-y-1 text-xs"></div>
+                    </div>
+                    <div class="border-t border-sky-200/15 pt-3">
+                        <h3 class="font-black text-sm mb-2 text-cyan-100">📜 실시간 거래</h3>
+                        <div id="mapTrades" class="max-h-24 overflow-y-auto space-y-1 text-xs pr-1"></div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <section>
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-lg font-black text-white">국가 핵심 자원</h2>
+                <div>
+                    <button id="convertBtn" class="mr-2 rounded-xl border border-cyan-300/30 px-4 py-2.5 text-sm font-black transition hover:bg-cyan-400/10 hover:border-cyan-300/60">🔁 국내 교환</button>
+                    <button id="openTrade" class="trade-action rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 text-sm font-black text-slate-950 shadow-md transition-transform hover:scale-105">🤝 무역 제안</button>
+                </div>
+            </div>
+            <div id="resources" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"></div>
+        </section>
+
+        <section class="grid gap-5 lg:grid-cols-2">
+            <div class="rounded-2xl p-5 glass">
+                <h2 class="font-black text-white flex items-center">📨 받은 무역 제안 <span id="incomingCount" class="ml-2 rounded-full bg-cyan-300 px-2.5 py-0.5 text-xs text-slate-950 shadow-sm">0</span></h2>
+                <div id="incoming" class="mt-4 space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
+            </div>
+            <div class="rounded-2xl p-5 glass">
+                <h2 class="font-black text-white">📤 보낸 무역 제안</h2>
+                <div id="outgoing" class="mt-4 space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
+            </div>
+        </section>
+
+        <section class="rounded-2xl p-5 glass">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h2 class="font-black text-white">📈 국제 자원 시장</h2>
+                    <p class="mt-1 text-xs text-sky-100/55">체결된 거래의 단가 흐름입니다.</p>
+                </div>
+                <select id="marketSelect" class="rounded-lg border border-sky-400/30 px-3 py-2 text-sm bg-slate-900/80 backdrop-blur outline-none"></select>
+            </div>
+            <div class="chartbox mt-4">
+                <canvas id="marketChart"></canvas>
+            </div>
+        </section>
+
+        <section id="teacherPanel" class="hidden rounded-2xl border border-yellow-300/25 bg-yellow-200/10 p-5 backdrop-blur-md shadow-[0_0_20px_rgba(253,224,71,0.05)]">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-yellow-200/70">Teacher control room</p>
+                    <h2 class="mt-1 text-lg font-black text-yellow-50">교사 통제실</h2>
+                    <p class="mt-2 text-sm text-yellow-50/80">학생 초대 코드: <span id="teacherCode" class="ml-1 rounded-lg bg-slate-950/60 border border-yellow-400/20 px-3 py-1 font-mono text-lg font-black tracking-[.2em] text-yellow-300 shadow-inner">----</span><button id="copyCode" class="ml-2 rounded-lg border border-yellow-300/30 px-2 py-1 text-xs font-bold transition hover:bg-yellow-400/20">복사</button></p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <button id="grantBtn" class="rounded-xl bg-yellow-400 px-4 py-2.5 font-black text-slate-950 shadow-md transition hover:bg-yellow-300">학생 지원</button>
+                    <button id="toggleIncome" class="rounded-xl bg-emerald-600 px-4 py-2.5 font-black text-white shadow-md transition hover:bg-emerald-500">수입 ON/OFF</button>
+                    <button id="toggleTrading" class="rounded-xl bg-violet-500 px-4 py-2.5 font-black text-white shadow-md transition hover:bg-violet-400">무역소 상태 변경</button>
+                </div>
+            </div>
+            <div class="mt-5 border-t border-yellow-200/15 pt-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-black text-yellow-50">📡 실시간 거래 관제</h3>
+                    <span id="teacherTradeCount" class="text-xs text-yellow-100/70">최근 거래</span>
+                </div>
+                <div id="teacherTrades" class="mt-3 grid max-h-72 gap-2 overflow-y-auto pr-1 md:grid-cols-2"></div>
+            </div>
+            <div class="mt-5 border-t border-yellow-200/15 pt-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-black text-yellow-50">💬 1:1 채팅 기록</h3>
+                    <span class="text-xs text-yellow-100/65">교사용 열람</span>
+                </div>
+                <div id="teacherChats" class="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1"></div>
+            </div>
+            <div class="mt-5 border-t border-yellow-200/15 pt-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-black text-yellow-50">👥 학생 관리</h3>
+                    <span class="text-xs text-yellow-100/65">초기화하면 계정은 유지되고, 이 방의 국가·자원·단계만 새로 시작합니다.</span>
+                </div>
+                <div id="teacherPlayers" class="mt-3 grid gap-2 md:grid-cols-2"></div>
+            </div>
+        </section>
+    </section>
+</main>
+
+<dialog id="tradeModal" class="dialog w-[min(92vw,520px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-black text-white">새 무역 제안</h2>
+            <button onclick="tradeModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <p class="mt-1 text-sm text-sky-100/60">내 자원을 다른 국가에 판매합니다.</p>
+        <div class="mt-5 grid gap-4">
+            <label class="text-sm font-bold text-sky-100">거래 상대<select id="buyer" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
+            <label class="text-sm font-bold text-sky-100">판매 자원<select id="item" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="text-sm font-bold text-sky-100">수량<input id="quantity" type="number" min="1" value="1" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400"></label>
+                <label class="text-sm font-bold text-sky-100">총 거래 금액 (국고)<input id="price" type="number" min="1" value="100" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400"></label>
+            </div>
+        </div>
+        <p id="tradeError" class="mt-3 min-h-5 text-sm text-rose-300 font-bold"></p>
+        <button id="sendTrade" class="trade-action mt-3 w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">제안 보내기</button>
+    </div>
+</dialog>
+
+<dialog id="teacherRoomModal" class="dialog w-[min(94vw,620px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-xs font-bold text-yellow-200">TEACHER ROOM LIBRARY</p>
+                <h2 class="mt-1 text-xl font-black text-white">무역 교실 관리</h2>
+                <p class="text-sm text-sky-100/60 mt-1">새 방을 만들거나 저장된 방에 재입장합니다.</p>
+            </div>
+            <button onclick="teacherRoomModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <button id="newRoomBtn" class="mt-5 w-full rounded-xl bg-yellow-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-yellow-300">＋ 새 무역 교실 만들기</button>
+        <h3 class="mt-6 font-black text-sky-50">저장된 무역 교실</h3>
+        <div id="savedRoomList" class="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1"></div>
+    </div>
+</dialog>
+
+<dialog id="conditionsModal" class="dialog w-[min(94vw,800px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex justify-between items-start">
+            <h2 class="text-xl font-black text-white">국가 레벨 단계별 기준 (1~8)</h2>
+            <button onclick="conditionsModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <div id="conditionsBody" class="mt-4 text-sm leading-7 text-sky-100/90 overflow-x-auto"></div>
+    </div>
+</dialog>
+
+<dialog id="convertModal" class="dialog w-[min(94vw,500px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex justify-between items-start">
+            <h2 class="text-xl font-black text-white">국내 자원 교환</h2>
+            <button onclick="convertModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <p class="mt-2 text-sm text-sky-100/65">노동력 100을 사용해 자원을 얻습니다. 노동력 100당 광물 30 · 수자원 10 · 기술 5 · 첨단 1</p>
+        <div class="mt-4 grid gap-2" id="convertChoices"></div>
+    </div>
+</dialog>
+
+<dialog id="chatListModal" class="dialog w-[min(94vw,520px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex justify-between items-start">
+            <h2 class="text-xl font-black text-white">내 1:1 채팅방</h2>
+            <button onclick="chatListModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <div id="chatRoomList" class="mt-4 max-h-96 space-y-2 overflow-y-auto pr-1"></div>
+    </div>
+</dialog>
+
+<dialog id="leaderModal" class="dialog w-[min(94vw,540px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex justify-between items-start">
+            <h2 id="leaderTitle" class="text-xl font-black text-white">자원 보유 상위 국가</h2>
+            <button onclick="leaderModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <p class="mt-1 text-sm text-sky-100/60">친구를 골라 바로 대화하거나 거래를 시작하세요.</p>
+        <div id="leaderList" class="mt-4 space-y-2 max-h-[60vh] overflow-y-auto pr-1"></div>
+    </div>
+</dialog>
+
+<dialog id="grantModal" class="dialog w-[min(94vw,520px)] rounded-2xl p-0">
+    <div class="p-6">
+        <div class="flex justify-between items-start">
+            <h2 class="text-xl font-black text-white">교사 자원 지원</h2>
+            <button onclick="grantModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <p class="mt-2 text-sm text-sky-100/65">선택한 학생에게 자원을 즉시 지급합니다.</p>
+        <label class="mt-4 block text-sm font-bold text-sky-100">학생<select id="grantStudent" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
+        <div class="mt-3 grid grid-cols-2 gap-3">
+            <label class="text-sm font-bold text-sky-100">국고 지급<input id="grantCash" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
+            <label class="text-sm font-bold text-sky-100">노동력<input id="grantLabor" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
+            <label class="text-sm font-bold text-sky-100">광물 지급<input id="grantMineral" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
+            <label class="text-sm font-bold text-sky-100">수자원<input id="grantWater" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
+            <label class="text-sm font-bold text-sky-100">기술자원<input id="grantTechnology" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
+            <label class="text-sm font-bold text-sky-100">첨단자원<input id="grantAdvanced" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
+        </div>
+        <button id="grantSubmit" class="mt-5 w-full rounded-xl bg-yellow-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-yellow-300">무제한 지원하기</button>
+    </div>
+</dialog>
+
+<dialog id="chatModal" class="dialog w-[min(94vw,510px)] rounded-2xl p-0">
+    <div class="p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs font-bold tracking-widest text-cyan-200">PRIVATE CHANNEL</p>
+                <h2 id="chatTitle" class="mt-1 text-lg font-black text-white">1:1 채팅</h2>
+            </div>
+            <button onclick="chatModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+        </div>
+        <div id="chatMessages" class="mt-4 h-72 space-y-2 overflow-y-auto rounded-xl border border-sky-400/20 bg-slate-950/50 p-3 shadow-inner"></div>
+        <div class="mt-3 flex gap-2">
+            <input id="chatInput" maxlength="250" class="min-w-0 flex-1 rounded-xl border border-sky-400/30 px-3 py-2 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400" placeholder="메시지를 입력하세요">
+            <button id="sendChat" class="rounded-xl bg-cyan-400 px-4 py-2 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">전송</button>
+        </div>
+        <button id="chatTradeBtn" class="mt-3 w-full rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 font-black text-slate-950 shadow-md transition hover:opacity-90">🤝 이 학생과 바로 거래하기</button>
+        <p class="mt-2 text-xs text-sky-100/45 text-center">교사는 수업 안전을 위해 모든 1:1 채팅 기록을 확인할 수 있습니다.</p>
+    </div>
+</dialog>
+
+<div id="toast" class="toast hidden rounded-xl border border-sky-200/20 bg-slate-900/95 p-4 text-sm shadow-2xl backdrop-blur-md"></div>
+<button id="quickChat" class="fixed bottom-5 left-5 z-20 hidden rounded-full bg-cyan-400 px-5 py-3.5 text-sm font-black text-slate-950 shadow-xl transition-transform hover:scale-105 hover:bg-cyan-300">💬 채팅</button>
+
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,onAuthStateChanged,setPersistence,browserLocalPersistence} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {getFirestore,doc,getDoc,setDoc,addDoc,collection,query,where,onSnapshot,updateDoc,serverTimestamp,runTransaction,getDocs,limit} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-// Firebase Console > 프로젝트 설정 > 내 앱에서 받은 실제 웹 앱 설정입니다.
+
 const firebaseConfig={apiKey:'AIzaSyCyB8O09VREQ22xvZSXqFIRRXSUc9QZYag',authDomain:'tradesite-9fbbe.firebaseapp.com',projectId:'tradesite-9fbbe',storageBucket:'tradesite-9fbbe.appspot.com',messagingSenderId:'554776960112',appId:'1:554776960112:web:e448da0fba0ef8f498e8b5'};
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const R=[['labor','노동력','👷'],['mineral','광물자원','⛏️'],['water','수자원','💧'],['technology','기술자원','💡'],['advanced','첨단자원','🧬']];
 
-// 약 24명 수업을 위한 국가 배정표입니다.
 const COUNTRIES=[
 ['대한민국','🇰🇷',36,128,[1200,420,270,330,210]],['일본','🇯🇵',36,138,[1050,350,240,310,200]],['중국','🇨🇳',35,104,[1750,950,480,370,190]],['인도','🇮🇳',22,79,[2000,480,360,280,130]],['베트남','🇻🇳',16,108,[1800,540,420,190,75]],['인도네시아','🇮🇩',-2,118,[1650,760,510,200,90]],['방글라데시','🇧🇩',24,90,[1850,260,230,150,65]],
 ['사우디아라비아','🇸🇦',24,45,[900,880,150,230,115]],['터키','🇹🇷',39,35,[1500,680,320,230,100]],['카자흐스탄','🇰🇿',48,68,[1000,920,270,180,70]],
@@ -59,7 +455,50 @@ function assignCountry(used=[]){
 const labels=Object.fromEntries(R.map(x=>[x[0],x[1]])); const icon=Object.fromEntries(R.map(x=>[x[0],x[2]]));
 const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],rows=[],chart,unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null;
 const fmt=n=>new Intl.NumberFormat('ko-KR').format(n||0); const enabled=()=>config.is_trading_active===true;
-function note(t,bad=false){const x=$('toast');x.textContent=t;x.className='toast rounded-xl border p-4 text-sm shadow-2xl '+(bad?'border-rose-300/30 bg-rose-950':'border-sky-200/20 bg-[#102a4b]');x.classList.remove('hidden');setTimeout(()=>x.classList.add('hidden'),4200)}
+
+let currentCountVals = {};
+let countFrames = {};
+function countUp(id, key, target, prefix='') {
+    let el = $(id);
+    if (!el) return;
+    
+    let start = currentCountVals[key];
+    if (start === undefined) {
+        start = target; 
+        currentCountVals[key] = target;
+        el.textContent = prefix + fmt(target);
+        return;
+    }
+    if (start === target) {
+        el.textContent = prefix + fmt(target);
+        return;
+    }
+    
+    let duration = 800; 
+    let startTime = null;
+    
+    const step = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        let progress = Math.min((timestamp - startTime) / duration, 1);
+        let ease = 1 - Math.pow(1 - progress, 4); 
+        let current = Math.floor(start + (target - start) * ease);
+        
+        let targetEl = $(id);
+        if (targetEl) targetEl.textContent = prefix + fmt(current);
+        
+        if (progress < 1) {
+            countFrames[key] = requestAnimationFrame(step);
+        } else {
+            currentCountVals[key] = target;
+            if (targetEl) targetEl.textContent = prefix + fmt(target);
+        }
+    };
+    
+    if (countFrames[key]) cancelAnimationFrame(countFrames[key]);
+    countFrames[key] = requestAnimationFrame(step);
+}
+
+function note(t,bad=false){const x=$('toast');x.textContent=t;x.className='toast rounded-xl border p-4 text-sm shadow-2xl backdrop-blur-md '+(bad?'border-rose-400/40 bg-rose-950/95 text-rose-100':'border-sky-300/30 bg-slate-900/95 text-sky-50');x.classList.remove('hidden');setTimeout(()=>x.classList.add('hidden'),4200)}
 
 function switchMode(m){
     mode=m;const teacher=m==='teacher';
@@ -68,8 +507,8 @@ function switchMode(m){
     $('lobbyDesc').textContent=teacher?'새 방을 만들거나 기존 방에 재입장하세요.':'선생님에게 받은 4자리 코드를 입력하세요.';
     $('nameLabel').textContent=teacher?'교사 이름 또는 방 이름':'학생 이름';
     $('enterBtn').textContent=teacher?'교사용 방 만들기':'입장하기';
-    $('studentTab').className='rounded-lg px-3 py-2.5 text-sm font-extrabold '+(!teacher?'bg-sky-200 text-slate-900':'text-sky-100/70');
-    $('teacherTab').className='rounded-lg px-3 py-2.5 text-sm font-extrabold '+(teacher?'bg-sky-200 text-slate-900':'text-sky-100/70')
+    $('studentTab').className='rounded-lg px-3 py-2.5 text-sm font-extrabold transition hover:opacity-90 '+(!teacher?'bg-sky-200 text-slate-900 shadow':'text-sky-100/70');
+    $('teacherTab').className='rounded-lg px-3 py-2.5 text-sm font-extrabold transition hover:opacity-90 '+(teacher?'bg-sky-200 text-slate-900 shadow':'text-sky-100/70')
 }
 $('studentTab').onclick=()=>switchMode('student');$('teacherTab').onclick=()=>switchMode('teacher');
 
@@ -97,7 +536,7 @@ onAuthStateChanged(auth,u=>{
     if(u){
         uid=u.uid;let label='계정';
         try{label=classIdentity().label}catch(e){}
-        $('connection').textContent='● 온라인 · '+label;$('connection').classList.add('text-emerald-200');
+        $('connection').textContent='● 온라인 · '+label;$('connection').classList.add('text-emerald-300');
         $('authStatus').textContent='로그인 완료. 이제 교사 또는 학생으로 입장하세요.'
     }else{
         $('connection').textContent='반·번호 로그인 필요';
@@ -120,7 +559,7 @@ async function openTeacherRooms(name){
     try{
         const rs=await getDocs(collection(db,`teacher_rooms/${uid}/rooms`));
         savedRooms=rs.docs.map(d=>({id:d.id,...d.data()}));
-        $('savedRoomList').innerHTML=savedRooms.length?savedRooms.map(r=>`<button onclick="window.enterSavedRoom('`+r.roomId+`')" class="w-full rounded-xl border border-sky-200/15 bg-slate-950/25 p-3 text-left hover:bg-slate-900 transition"><b>${safe(r.name||'무역 교실')}</b><span class="ml-2 font-mono text-yellow-200">${r.inviteCode}</span><small class="block text-sky-100/55 mt-1">클릭하여 재입장</small></button>`).join(''):'<p class="text-sm text-sky-100/55">저장된 방이 없습니다.</p>';
+        $('savedRoomList').innerHTML=savedRooms.length?savedRooms.map(r=>`<button onclick="window.enterSavedRoom('`+r.roomId+`')" class="w-full rounded-xl border border-sky-400/20 bg-slate-900/50 p-3 text-left hover:bg-slate-800 transition"><b>${safe(r.name||'무역 교실')}</b><span class="ml-2 font-mono text-yellow-300">${r.inviteCode}</span><small class="block text-sky-100/60 mt-1">클릭하여 재입장</small></button>`).join(''):'<p class="text-sm text-sky-100/55">저장된 방이 없습니다.</p>';
         $('teacherRoomModal').showModal()
     }catch(e){
         $('lobbyError').textContent='방 목록 오류: '+e.message
@@ -203,13 +642,10 @@ $('enterBtn').onclick=async()=>{
             roomId=s.docs[0].id;room=s.docs[0].data();
             const ps=await getDocs(collection(db,`rooms/${roomId}/players`));
             
-            // 학생이 기존에 있던 방인지 확인
             const meDoc = ps.docs.find(d => d.id === uid);
             if (meDoc) {
-                // 이미 방에 있던 학생은 새로 배정하지 않음
                 await join(name,false);
             } else {
-                // 새 학생은 국가 랜덤 배정
                 const assigned=assignCountry(ps.docs.map(d=>d.data().country));
                 await join(name,false,assigned);
                 note(`${assigned.name} 국가로 배정되었습니다!`);
@@ -240,13 +676,13 @@ function renderPlayerList(){
     $('playerCount').textContent=active.length+'/'+students.length;
     $('playerList').innerHTML=students.length?students.map(p=>{
         let isActive=!p.lastSeen?.toDate||now-p.lastSeen.toDate().getTime()<35000;
-        return `<div class="flex items-center gap-2 rounded-xl border p-2 ${p.id===uid?'border-cyan-300/60 bg-cyan-300/20':'border-sky-200/10 bg-sky-100/5'}">
+        return `<div class="flex items-center gap-2 rounded-xl border p-2 transition hover:bg-slate-800/50 ${p.id===uid?'border-cyan-300/60 bg-cyan-900/40':'border-sky-400/15 bg-slate-900/30'}">
             <button onclick="window.focusNation('`+p.id+`')" class="flex min-w-0 flex-1 items-center gap-2 text-left hover:opacity-80">
                 <span class="text-xl">${safe(p.countryFlag||'🌐')}</span>
-                <span class="min-w-0"><b class="block truncate text-sm text-sky-100">${safe(p.country||p.displayName)}</b><small class="block truncate text-sky-100/55">${safe(p.displayName)} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
+                <span class="min-w-0"><b class="block truncate text-sm text-sky-50">${safe(p.country||p.displayName)}</b><small class="block truncate text-sky-100/60">${safe(p.displayName)} · Lv.${levelFor(p.inventory||{}, p.country||'').level}</small></span>
             </button>
-            <button onclick="window.openChat('`+p.id+`')" class="rounded-lg bg-cyan-300/15 px-2 py-1 text-xs hover:bg-cyan-300/30 transition" title="1:1 채팅">💬</button>
-            <span class="h-2 w-2 rounded-full ${isActive?'bg-emerald-400':'bg-slate-500'}"></span>
+            <button onclick="window.openChat('`+p.id+`')" class="rounded-lg bg-cyan-400/15 px-2 py-1 text-xs hover:bg-cyan-400/30 transition shadow-sm" title="1:1 채팅">💬</button>
+            <span class="h-2 w-2 rounded-full shadow-sm ${isActive?'bg-emerald-400':'bg-slate-600'}"></span>
         </div>`
     }).join(''):'<p class="text-sm text-sky-100/55">아직 접속한 학생이 없습니다.</p>'
 }
@@ -265,26 +701,30 @@ function renderMapPlayers(){
         node.style.cssText = 'min-width:240px; color:#eaf2ff; line-height: 1.4;';
         node.innerHTML=`<b style="font-size:16px; color:#5de0e6;">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br>
         <span style="font-size: 13px; color:#9fb0c9;">${safe(p.displayName)} (${safe(p.classIdentity||'')}) · 국가 레벨 ${lv}</span><br>
-        <div style="margin-top:8px; display:grid; grid-template-columns: 1fr 1fr; gap:4px; font-size:12px;">
-            <div style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">노동 ${fmt(p.inventory?.labor)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">광물 ${fmt(p.inventory?.mineral)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">수자원 ${fmt(p.inventory?.water)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">기술 ${fmt(p.inventory?.technology)}</div>
-            <div style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; grid-column: 1 / 3;">첨단 ${fmt(p.inventory?.advanced)}</div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; font-weight:bold;">
+            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">노동 ${fmt(p.inventory?.labor)}</div>
+            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">광물 ${fmt(p.inventory?.mineral)}</div>
+            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">수자원 ${fmt(p.inventory?.water)}</div>
+            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">기술 ${fmt(p.inventory?.technology)}</div>
+            <div style="background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); grid-column: 1 / 3;">첨단 ${fmt(p.inventory?.advanced)}</div>
         </div>`;
         
         if(!mine){
             let btnWrapper = document.createElement('div');
-            btnWrapper.style.cssText = 'display:flex; gap:8px; margin-top:12px;';
+            btnWrapper.style.cssText = 'display:flex; gap:8px; margin-top:14px;';
             
             let trade=document.createElement('button');
             trade.textContent='🤝 거래 시작';
-            trade.style.cssText='flex:1; background:#f8c94d; color:#14233e; border:0; border-radius:6px; padding:8px 0; font-weight:bold; cursor:pointer;';
+            trade.style.cssText='flex:1; background:#f8c94d; color:#14233e; border:0; border-radius:8px; padding:10px 0; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.1s;';
+            trade.onmouseover=()=>trade.style.transform='scale(1.05)';
+            trade.onmouseout=()=>trade.style.transform='scale(1)';
             trade.onclick=()=>window.tradeWith(p.id);
             
             let chat=document.createElement('button');
             chat.textContent='💬 채팅';
-            chat.style.cssText='flex:1; background:#5de0e6; color:#14233e; border:0; border-radius:6px; padding:8px 0; font-weight:bold; cursor:pointer;';
+            chat.style.cssText='flex:1; background:#5de0e6; color:#14233e; border:0; border-radius:8px; padding:10px 0; font-weight:bold; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.1s;';
+            chat.onmouseover=()=>chat.style.transform='scale(1.05)';
+            chat.onmouseout=()=>chat.style.transform='scale(1)';
             chat.onclick=()=>window.openChat(p.id);
             
             btnWrapper.append(trade,chat);
@@ -333,12 +773,12 @@ $('chatTradeBtn').onclick=()=>{
 function renderChat(){
     if(!activeChatId)return;
     let messages=chatRows.filter(m=>(m.senderId===uid&&m.receiverId===activeChatId)||(m.senderId===activeChatId&&m.receiverId===uid));
-    $('chatMessages').innerHTML=messages.length?messages.map(m=>`<div class="flex ${m.senderId===uid?'justify-end':'justify-start'} mb-2"><div class="max-w-[80%] rounded-xl px-3 py-2 text-sm ${m.senderId===uid?'bg-cyan-400 text-slate-950':'bg-slate-700 text-white shadow'}"><b class="block text-[10px] opacity-70 mb-1">${safe(m.senderName||'')}</b>${safe(m.text||'')}</div></div>`).join(''):'<p class="pt-20 text-center text-sm text-sky-100/50">대화를 시작해 보세요.</p>';
+    $('chatMessages').innerHTML=messages.length?messages.map(m=>`<div class="flex ${m.senderId===uid?'justify-end':'justify-start'} mb-2"><div class="max-w-[80%] rounded-xl px-3 py-2 text-sm ${m.senderId===uid?'bg-cyan-400 text-slate-950 shadow-md':'bg-slate-700 text-white shadow-md'}"><b class="block text-[10px] opacity-70 mb-1">${safe(m.senderName||'')}</b>${safe(m.text||'')}</div></div>`).join(''):'<p class="pt-20 text-center text-sm text-sky-100/50">대화를 시작해 보세요.</p>';
     $('chatMessages').scrollTop=$('chatMessages').scrollHeight
 }
 async function sendMessage(){
     let text=$('chatInput').value.trim(),to=players.find(p=>p.id===activeChatId);
-    if(!text||!to)return;
+    if(!text||to==null)return;
     try{
         await addDoc(collection(db,'messages'),{roomId,senderId:uid,senderName:me.displayName||'',receiverId:activeChatId,receiverName:to.displayName||'',text,createdAt:serverTimestamp()});
         $('chatInput').value=''
@@ -350,7 +790,7 @@ $('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e
 function renderTeacherChats(){
     if(config.teacherUid!==uid)return;
     let out=[...chatRows].slice(-50).reverse();
-    $('teacherChats').innerHTML=out.length?out.map(m=>`<div class="rounded-lg border border-yellow-100/15 bg-slate-950/25 p-3 text-sm"><b>${safe(m.senderName)}</b> <span class="text-yellow-100/55">→</span> <b>${safe(m.receiverName)}</b><p class="mt-1 text-yellow-50/80">${safe(m.text)}</p></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 채팅 기록이 없습니다.</p>'
+    $('teacherChats').innerHTML=out.length?out.map(m=>`<div class="rounded-lg border border-yellow-300/15 bg-slate-900/50 p-3 text-sm transition hover:bg-slate-800"><b>${safe(m.senderName)}</b> <span class="text-yellow-100/55">→</span> <b>${safe(m.receiverName)}</b><p class="mt-1 text-yellow-50/90">${safe(m.text)}</p></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 채팅 기록이 없습니다.</p>'
 }
 
 $('quickChat').onclick=()=>{
@@ -360,13 +800,13 @@ $('quickChat').onclick=()=>{
 function renderTeacherPlayers(){
     if(config.teacherUid!==uid)return;
     let students=players.filter(p=>p.role!=='teacher');
-    $('teacherPlayers').innerHTML=students.length?students.map(p=>`<div class="flex flex-col gap-2 rounded-lg border border-yellow-100/15 bg-slate-950/25 p-3 text-sm">
+    $('teacherPlayers').innerHTML=students.length?students.map(p=>`<div class="flex flex-col gap-2 rounded-lg border border-yellow-300/15 bg-slate-900/50 p-3 text-sm transition hover:bg-slate-800">
         <div class="flex justify-between items-start">
-            <span><b>${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br><small class="text-yellow-100/60">${safe(p.displayName)} · ${safe(p.classIdentity||'')}</small></span>
-            <button onclick="window.resetStudent('`+p.id+`')" class="rounded bg-rose-500/80 px-2 py-1 text-xs font-bold hover:bg-rose-500 transition text-white">학생 초기화</button>
+            <span><b class="text-white">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><br><small class="text-yellow-100/70">${safe(p.displayName)} · ${safe(p.classIdentity||'')}</small></span>
+            <button onclick="window.resetStudent('`+p.id+`')" class="rounded bg-rose-500/80 px-2 py-1 text-xs font-bold hover:bg-rose-500 transition text-white shadow-sm">학생 초기화</button>
         </div>
-        <div class="text-xs text-yellow-100/40 grid grid-cols-2 gap-1 mt-1">
-            <span>국고: ₩${fmt(p.balance)}</span><span>레벨: ${levelFor(p.inventory||{}, p.country||'').level}</span>
+        <div class="text-xs text-yellow-100/50 grid grid-cols-2 gap-1 mt-1">
+            <span>국고: <strong class="text-yellow-200">₩${fmt(p.balance)}</strong></span><span>레벨: <strong class="text-cyan-200">${levelFor(p.inventory||{}, p.country||'').level}</strong></span>
         </div>
     </div>`).join(''):'<p class="text-sm text-yellow-100/60">접속한 학생이 없습니다.</p>'
 }
@@ -388,7 +828,7 @@ window.resetStudent=async id=>{
 function animateTrade(sellerId,buyerId,itemId='',quantity=0){
     if(!map||!markersById[sellerId]||!markersById[buyerId])return;
     let a=markersById[sellerId].getLatLng(),b=markersById[buyerId].getLatLng(),label=`✈️ ${labels[itemId]||'자원'} ${quantity}개`;
-    let plane=L.marker(a,{interactive:false,icon:L.divIcon({className:'trade-ship',html:`<div style="white-space:nowrap; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:8px; color:white;">${label}</div>`,iconSize:[150,30],iconAnchor:[15,15]})}).addTo(map);
+    let plane=L.marker(a,{interactive:false,icon:L.divIcon({className:'trade-ship',html:`<div style="white-space:nowrap; background:rgba(0,0,0,0.7); padding:6px 10px; border-radius:10px; color:white; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1);">${label}</div>`,iconSize:[150,30],iconAnchor:[15,15]})}).addTo(map);
     let t=0,frames=60,timer=setInterval(()=>{
         t++;plane.setLatLng([a.lat+(b.lat-a.lat)*t/frames,a.lng+(b.lng-a.lng)*t/frames]);
         if(t>=frames){
@@ -402,12 +842,11 @@ function openChatList(){
     let peers=players.filter(p=>p.id!==uid&&p.role!=='teacher');
     $('chatRoomList').innerHTML=peers.length?peers.map(p=>{
         let last=chatRows.filter(m=>(m.senderId===uid&&m.receiverId===p.id)||(m.senderId===p.id&&m.receiverId===uid)).slice(-1)[0];
-        return `<button onclick="window.openChat('`+p.id+`');chatListModal.close()" class="w-full rounded-xl border border-sky-200/15 bg-slate-950/25 p-3 text-left hover:bg-slate-900 transition"><b>${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><small class="mt-1 block truncate text-sky-100/60">${safe(last?.text||'대화를 시작하세요')}</small></button>`
+        return `<button onclick="window.openChat('`+p.id+`');chatListModal.close()" class="w-full rounded-xl border border-sky-400/20 bg-slate-900/60 p-3 text-left hover:bg-slate-800 transition shadow-sm"><b class="text-white">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</b><small class="mt-1 block truncate text-sky-100/60">${safe(last?.text||'대화를 시작하세요')}</small></button>`
     }).join(''):'<p class="text-sky-100/55">채팅할 학생이 없습니다.</p>';
     $('chatListModal').showModal()
 }
 
-// 조건 확인 (레벨표 생성)
 function generateLevelTable(country) {
     let reqs = requirementsFor(country);
     let c = continentOf(country);
@@ -419,10 +858,10 @@ function generateLevelTable(country) {
         오세아니아:'오세아니아 대륙 보너스 반영 (노동 1x, 광물 0.75x, 수자원 0.75x, 기술 1x, 첨단 1.2x)'
     }[c] || '대륙 보너스 없음';
 
-    let html = `<p class="mb-4 text-cyan-200 font-bold">${strategy}</p>`;
-    html += `<table class="w-full text-left text-xs border-collapse"><thead><tr class="border-b border-sky-200/30 text-sky-200"><th class="py-2">레벨</th><th>노동력</th><th>광물자원</th><th>수자원</th><th>기술자원</th><th>첨단자원</th></tr></thead><tbody>`;
+    let html = `<p class="mb-4 text-cyan-200 font-bold bg-cyan-900/30 p-2 rounded">${strategy}</p>`;
+    html += `<table class="w-full text-left text-xs border-collapse"><thead><tr class="border-b border-sky-400/30 text-sky-200"><th class="py-2">레벨</th><th>노동력</th><th>광물자원</th><th>수자원</th><th>기술자원</th><th>첨단자원</th></tr></thead><tbody>`;
     reqs.forEach((req, idx) => {
-        html += `<tr class="border-b border-sky-200/10 hover:bg-sky-900/30"><td class="py-2 font-bold text-yellow-200">${idx+1}</td><td>${fmt(req[0])}</td><td>${fmt(req[1])}</td><td>${fmt(req[2])}</td><td>${fmt(req[3])}</td><td>${fmt(req[4])}</td></tr>`;
+        html += `<tr class="border-b border-sky-200/10 hover:bg-sky-900/40 transition"><td class="py-2 font-black text-yellow-300">LV ${idx+1}</td><td>${fmt(req[0])}</td><td>${fmt(req[1])}</td><td>${fmt(req[2])}</td><td>${fmt(req[3])}</td><td>${fmt(req[4])}</td></tr>`;
     });
     html += `</tbody></table>`;
     return html;
@@ -435,7 +874,7 @@ $('levelBtn').onclick=()=>{
 
 $('convertBtn').onclick=()=>{
     let opts=[['mineral','광물자원',30],['water','수자원',10],['technology','기술자원',5],['advanced','첨단자원',1]];
-    $('convertChoices').innerHTML=opts.map(([k,n,q])=>`<button onclick="window.convertResource('`+k+`',`+q+`)" class="rounded-xl border border-cyan-200/20 p-3 text-left hover:bg-cyan-300/10 transition">노동력 100 → <b>${n} ${q}</b></button>`).join('');
+    $('convertChoices').innerHTML=opts.map(([k,n,q])=>`<button onclick="window.convertResource('`+k+`',`+q+`)" class="rounded-xl border border-cyan-400/30 bg-slate-900/80 p-3 text-left hover:bg-cyan-900/50 hover:border-cyan-400/60 transition text-sky-50 shadow-sm">노동력 100 → <b class="text-cyan-200">${n} ${q}</b></button>`).join('');
     $('convertModal').showModal()
 };
 window.convertResource=async(k,q)=>{
@@ -452,11 +891,9 @@ $('toggleIncome').onclick=async()=>{
     await updateDoc(doc(db,`rooms/${roomId}/config/settings`),{income_active:config.income_active!==true})
 };
 
-// 클라이언트 사이드 자동 지급 + 트랜잭션 검증
 async function collectIncome(){
     if(config.income_active===false||!roomId||!uid||me.role==='teacher')return;
     let now=Date.now(),last=me.lastIncome?.toDate?me.lastIncome.toDate().getTime():0;
-    // 1분이 지나지 않았으면 리턴
     if(last&&now-last<60000)return;
     
     try{
@@ -465,7 +902,6 @@ async function collectIncome(){
             if(!snap.exists()||cfg.data()?.income_active===false)return;
             
             let d=snap.data(),prev=d.lastIncome?.toDate?d.lastIncome.toDate().getTime():0;
-            // 트랜잭션 내에서 다시 시간 검증 (동시 실행 방지)
             if(prev&&Date.now()-prev<60000)return;
             
             let v=d.inventory||{},amount=Math.max(1,Math.floor(v.labor*.01+v.mineral*.05+v.water*.07+v.technology*(.1/60)+v.advanced*(.2/60)));
@@ -519,9 +955,9 @@ function renderIncomePanel(){
 
 function renderMapSide(){
     let all=players.filter(p=>p.role!=='teacher').sort((a,b)=>(b.balance||0)-(a.balance||0)).slice(0,5);
-    $('cashRank').innerHTML=all.map((p,i)=>`<div class="flex justify-between p-1 rounded hover:bg-slate-800 transition cursor-pointer" onclick="window.focusNation('${p.id}')"><span><span class="text-yellow-200 font-bold mr-1">#${i+1}</span> ${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</span><b class="text-yellow-200">₩${fmt(p.balance)}</b></div>`).join('')||'순위 없음';
+    $('cashRank').innerHTML=all.map((p,i)=>`<div class="flex justify-between p-1.5 rounded hover:bg-slate-800/80 transition cursor-pointer" onclick="window.focusNation('${p.id}')"><span><span class="text-yellow-300 font-black mr-1">#${i+1}</span> <span class="text-white">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</span></span><b class="text-yellow-300">₩${fmt(p.balance)}</b></div>`).join('')||'순위 없음';
     let recent=[...rows].slice(-10).reverse();
-    $('mapTrades').innerHTML=recent.map(r=>`<div class="py-1 border-b border-sky-200/5 last:border-0"><span class="text-sky-200 font-bold">${labels[r.itemId]||r.itemId}</span> ${r.quantity}개 <span class="float-right text-yellow-300">₩${fmt(r.totalPrice||r.unitPrice*r.quantity||0)}</span></div>`).join('')||'거래 기록 없음';
+    $('mapTrades').innerHTML=recent.map(r=>`<div class="py-1.5 border-b border-sky-400/10 last:border-0"><span class="text-sky-300 font-bold">${labels[r.itemId]||r.itemId}</span> <span class="text-white">${r.quantity}개</span> <span class="float-right text-yellow-300 font-bold">₩${fmt(r.totalPrice||r.unitPrice*r.quantity||0)}</span></div>`).join('')||'거래 기록 없음';
 }
 
 function clear(){unsubs.forEach(f=>f());unsubs=[]}
@@ -535,7 +971,7 @@ function watch(){
         $('teacherCode').textContent=config.inviteCode||room.inviteCode||'----';
         $('toggleTrading').textContent=enabled()?'무역소 일시 정지':'무역소 다시 열기';
         $('toggleIncome').textContent=config.income_active===false?'수입 ON':'수입 OFF';
-        $('toggleIncome').className = config.income_active===false?'rounded-xl bg-emerald-600 px-4 py-2.5 font-black text-white':'rounded-xl bg-rose-600 px-4 py-2.5 font-black text-white';
+        $('toggleIncome').className = config.income_active===false?'rounded-xl bg-emerald-600 px-4 py-2.5 font-black text-white shadow-md transition hover:bg-emerald-500':'rounded-xl bg-rose-600 px-4 py-2.5 font-black text-white shadow-md transition hover:bg-rose-500';
     }));
     unsubs.push(onSnapshot(doc(db,`rooms/${roomId}/players/${uid}`),s=>{
         me=s.data()||{};renderMe();renderIncomePanel();fillForm();
@@ -599,23 +1035,23 @@ window.showResourceLeaders = (resKey) => {
     let all = players.filter(p=>p.role!=='teacher').sort((a,b) => (b.inventory?.[resKey]||0) - (a.inventory?.[resKey]||0)).slice(0,5);
     $('leaderTitle').textContent = `${labels[resKey]} 상위 국가`;
     $('leaderList').innerHTML = all.length ? all.map((p,i) => `
-        <div class="flex items-center justify-between p-3 rounded-xl border border-sky-200/10 bg-slate-900/50">
-            <div class="flex items-center gap-2">
-                <span class="text-yellow-200 font-bold w-4">#${i+1}</span>
-                <span class="text-xl">${safe(p.countryFlag||'🌐')}</span>
+        <div class="flex items-center justify-between p-3 rounded-xl border border-sky-400/20 bg-slate-900/60 shadow-sm transition hover:bg-slate-800">
+            <div class="flex items-center gap-3">
+                <span class="text-yellow-300 font-black w-4">#${i+1}</span>
+                <span class="text-2xl drop-shadow-md">${safe(p.countryFlag||'🌐')}</span>
                 <div class="flex flex-col">
-                    <span class="font-bold text-sm">${safe(p.country||p.displayName)}</span>
-                    <span class="text-xs text-sky-200">${fmt(p.inventory?.[resKey]||0)} 보유</span>
+                    <span class="font-bold text-sm text-white">${safe(p.country||p.displayName)}</span>
+                    <span class="text-xs text-sky-200 mt-0.5">${fmt(p.inventory?.[resKey]||0)} 보유</span>
                 </div>
             </div>
             ${p.id !== uid ? `
             <div class="flex gap-2">
-                <button onclick="window.tradeWith('${p.id}'); leaderModal.close()" class="px-2 py-1 bg-yellow-400 text-black text-xs font-bold rounded">거래</button>
-                <button onclick="window.openChat('${p.id}'); leaderModal.close()" class="px-2 py-1 bg-cyan-400 text-black text-xs font-bold rounded">채팅</button>
+                <button onclick="window.tradeWith('${p.id}'); leaderModal.close()" class="px-3 py-1.5 bg-yellow-400 text-black text-xs font-black rounded-lg shadow-sm hover:bg-yellow-300 transition">거래</button>
+                <button onclick="window.openChat('${p.id}'); leaderModal.close()" class="px-3 py-1.5 bg-cyan-400 text-black text-xs font-black rounded-lg shadow-sm hover:bg-cyan-300 transition">채팅</button>
             </div>
-            ` : '<span class="text-xs text-sky-100/50 mr-2">내 국가</span>'}
+            ` : '<span class="text-xs font-bold text-sky-100/50 mr-2 bg-slate-800 px-2 py-1 rounded">내 국가</span>'}
         </div>
-    `).join('') : '<p class="text-sky-100/50">데이터가 없습니다.</p>';
+    `).join('') : '<p class="text-sky-100/50 text-center py-4">데이터가 없습니다.</p>';
     $('leaderModal').showModal();
 };
 
@@ -623,28 +1059,31 @@ function renderMe(){
     let inv=me.inventory||{},g=levelFor(inv, me.country||''),stage=g.level,next=g.requirements[Math.min(7,stage)],keys=['labor','mineral','water','technology','advanced'],names=['노동력','광물','수자원','기술자원','첨단자원'];
     let ratios=keys.map((k,i)=>(inv[k]||0)/next[i]),pct=stage===8?100:Math.min(100,Math.min(...ratios)*100);
     
-    $('balance').textContent='₩'+fmt(me.balance);
+    countUp('balance', 'balance', me.balance || 0, '₩');
     $('stageNumber').textContent=stage;
     $('stageText').textContent=stage===8?'최종 단계 달성! 균형 잡힌 선진 국가입니다.':`다음 단계까지 각 자원의 부족·여유량을 확인하세요.`;
     $('progress').style.width=pct+'%';
     
     let details=stage===8?'모든 8단계 개별 기준을 달성했습니다.':keys.map((k,i)=>{
         let diff=(inv[k]||0)-next[i];
-        return `<button onclick="window.showResourceLeaders('${k}')" class="mr-2 mt-1 rounded px-2 py-1 text-xs hover:brightness-110 transition ${diff<0?'bg-rose-500/30 text-rose-200 border border-rose-500/50':'bg-sky-400/20 text-sky-200 border border-sky-400/30'}">${names[i]} ${diff<0?'부족':'여유'} ${fmt(Math.abs(diff))}</button>`
+        return `<button onclick="window.showResourceLeaders('${k}')" class="mr-2 mt-1 rounded-md px-2.5 py-1 text-xs font-bold hover:brightness-110 transition shadow-sm ${diff<0?'bg-rose-500/30 text-rose-200 border border-rose-400/40':'bg-sky-400/20 text-cyan-200 border border-sky-400/30'}">${names[i]} ${diff<0?'부족':'여유'} ${fmt(Math.abs(diff))}</button>`
     }).join('');
     $('progressDetail').innerHTML=details;
     
     $('resources').innerHTML=R.map(([k,n,i])=>`
-        <button onclick="window.showResourceLeaders('${k}')" class="resource rounded-2xl p-4 text-left transition hover:-translate-y-1 hover:border-cyan-300/70 hover:shadow-[0_0_15px_rgba(93,224,230,0.2)]">
-            <div class="flex items-center justify-between">
-                <span class="text-2xl">${i}</span>
-                <span class="rounded-full bg-sky-100/10 px-2 py-1 text-xs font-bold text-sky-100/70">클릭하여 순위</span>
+        <button onclick="window.showResourceLeaders('${k}')" class="resource rounded-2xl p-4 text-left shadow-lg relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-br from-cyan-400/0 to-cyan-400/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="flex items-center justify-between relative z-10">
+                <span class="text-2xl drop-shadow-md">${i}</span>
+                <span class="rounded-full bg-slate-900/60 border border-sky-400/20 px-2 py-1 text-[10px] font-bold text-sky-200/70 shadow-sm transition group-hover:text-cyan-200">순위</span>
             </div>
-            <p class="mt-3 text-sm font-bold text-sky-100/75">${n}</p>
-            <p class="mt-1 text-3xl font-black">${fmt(inv[k])}</p>
-            ${stage<8?`<small class="mt-2 block font-bold ${((inv[k]||0)-next[keys.indexOf(k)])<0?'text-rose-300':'text-cyan-200'}">${((inv[k]||0)-next[keys.indexOf(k)])<0?'다음 단계 부족 '+fmt(next[keys.indexOf(k)]-(inv[k]||0)):'여유 '+fmt((inv[k]||0)-next[keys.indexOf(k)])}</small>`:''}
+            <p class="mt-3 text-sm font-bold text-sky-100/90 relative z-10">${n}</p>
+            <p id="res_val_${k}" class="mt-1 text-3xl font-black text-white relative z-10">${fmt(currentCountVals[k] !== undefined ? currentCountVals[k] : inv[k])}</p>
+            ${stage<8?`<small class="mt-2 block font-bold relative z-10 ${((inv[k]||0)-next[keys.indexOf(k)])<0?'text-rose-300':'text-cyan-300'}">${((inv[k]||0)-next[keys.indexOf(k)])<0?'다음 단계 부족 '+fmt(next[keys.indexOf(k)]-(inv[k]||0)):'여유 '+fmt((inv[k]||0)-next[keys.indexOf(k)])}</small>`:''}
         </button>
-    `).join('')
+    `).join('');
+
+    keys.forEach(k => countUp('res_val_'+k, k, inv[k]||0));
 }
 
 function fillForm(){
@@ -656,18 +1095,18 @@ function fillForm(){
 function safe(t=''){let d=document.createElement('div');d.textContent=t;return d.innerHTML}
 function card(t,incoming){
     let total=(t.totalPrice||t.quantity*t.unitPrice||0);
-    return `<div class="rounded-xl border border-sky-200/15 bg-slate-950/40 p-4 hover:border-sky-200/30 transition">
+    return `<div class="rounded-xl border border-sky-400/20 bg-slate-900/60 p-4 hover:border-sky-400/50 hover:bg-slate-800/80 transition shadow-md">
         <div class="flex justify-between gap-3">
             <div>
-                <p class="font-black text-lg">${icon[t.itemId]||'📦'} ${labels[t.itemId]||t.itemId} <span class="text-cyan-300 ml-1">× ${fmt(t.quantity)}</span></p>
-                <p class="mt-1 text-xs text-sky-100/60">${incoming?'판매: '+safe(t.sellerName):'구매: '+safe(t.buyerName)}</p>
+                <p class="font-black text-lg text-white">${icon[t.itemId]||'📦'} ${labels[t.itemId]||t.itemId} <span class="text-cyan-300 ml-1">× ${fmt(t.quantity)}</span></p>
+                <p class="mt-1 text-xs text-sky-100/70 font-bold">${incoming?'판매: '+safe(t.sellerName):'구매: '+safe(t.buyerName)}</p>
             </div>
             <div class="text-right">
-                <p class="font-black text-yellow-300 text-lg">₩${fmt(total)}</p>
-                <p class="mt-1 text-xs font-bold ${t.status==='pending'?'text-cyan-200':t.status==='accepted'?'text-emerald-400':'text-rose-400'}">${t.status==='pending'?'대기 중':t.status==='accepted'?'체결 완료':'거절됨'}</p>
+                <p class="font-black text-yellow-300 text-lg drop-shadow-md">₩${fmt(total)}</p>
+                <p class="mt-1 text-xs font-bold ${t.status==='pending'?'text-cyan-300':t.status==='accepted'?'text-emerald-400':'text-rose-400'}">${t.status==='pending'?'대기 중':t.status==='accepted'?'체결 완료':'거절됨'}</p>
             </div>
         </div>
-        ${incoming&&t.status==='pending'?`<div class="mt-4 flex gap-2"><button onclick="window.acceptTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 transition px-3 py-2 text-sm font-black text-white shadow-lg">수락</button><button onclick="window.rejectTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-slate-700 hover:bg-slate-600 transition px-3 py-2 text-sm font-black text-white">거절</button></div>`:''}
+        ${incoming&&t.status==='pending'?`<div class="mt-4 flex gap-2"><button onclick="window.acceptTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 transition px-3 py-2.5 text-sm font-black text-white shadow-lg transform hover:-translate-y-0.5">수락</button><button onclick="window.rejectTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-slate-700 hover:bg-rose-500 transition px-3 py-2.5 text-sm font-black text-white shadow-lg transform hover:-translate-y-0.5">거절</button></div>`:''}
     </div>`
 }
 
@@ -682,8 +1121,8 @@ function renderTrades(ts){
     let pendingA = a.filter(t=>t.status==='pending');
     
     $('incomingCount').textContent=pendingA.length;
-    $('incoming').innerHTML=a.length?a.map(t=>card(t,true)).join(''):'<p class="text-sm text-sky-100/55">받은 무역 제안이 없습니다.</p>';
-    $('outgoing').innerHTML=b.length?b.map(t=>card(t,false)).join(''):'<p class="text-sm text-sky-100/55">보낸 제안이 없습니다.</p>';
+    $('incoming').innerHTML=a.length?a.map(t=>card(t,true)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">받은 무역 제안이 없습니다.</p>';
+    $('outgoing').innerHTML=b.length?b.map(t=>card(t,false)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">보낸 제안이 없습니다.</p>';
 
     let now=new Set(pendingA.map(t=>t.id));
     if(tradeBootstrapped) pendingA.filter(t=>!knownIncoming.has(t.id)).forEach(t=>note('📨 새 무역 제안: '+t.sellerName+' · '+labels[t.itemId]+' × '+t.quantity));
@@ -692,7 +1131,7 @@ function renderTrades(ts){
     if(config.teacherUid===uid){
         let recent=[...ts].sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0)).slice(0,30);
         $('teacherTradeCount').textContent='최근 '+recent.length+'건';
-        $('teacherTrades').innerHTML=recent.length?recent.map(t=>`<div class="rounded-lg border border-yellow-100/15 bg-slate-950/40 p-3 text-sm"><b>${safe(t.sellerName)}</b> → <b>${safe(t.buyerName)}</b><br><span class="text-yellow-200 mt-1 block font-bold">${labels[t.itemId]} × ${fmt(t.quantity)} · ₩${fmt((t.totalPrice||t.quantity*t.unitPrice||0))}</span><span class="float-right text-xs font-bold ${t.status==='accepted'?'text-emerald-400':t.status==='rejected'?'text-rose-400':'text-cyan-300'} -mt-4">${t.status==='accepted'?'체결':t.status==='rejected'?'거절':'대기'}</span></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 거래 기록이 없습니다.</p>'
+        $('teacherTrades').innerHTML=recent.length?recent.map(t=>`<div class="rounded-lg border border-yellow-300/20 bg-slate-900/60 p-3 text-sm shadow-sm hover:bg-slate-800 transition"><b>${safe(t.sellerName)}</b> <span class="text-sky-200">→</span> <b>${safe(t.buyerName)}</b><br><span class="text-yellow-200 mt-1 block font-bold">${labels[t.itemId]} × ${fmt(t.quantity)} · ₩${fmt((t.totalPrice||t.quantity*t.unitPrice||0))}</span><span class="float-right text-xs font-bold ${t.status==='accepted'?'text-emerald-400':t.status==='rejected'?'text-rose-400':'text-cyan-300'} -mt-4">${t.status==='accepted'?'체결':t.status==='rejected'?'거절':'대기'}</span></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 거래 기록이 없습니다.</p>'
     }
 }
 
@@ -723,7 +1162,6 @@ window.rejectTrade=async id=>{
     if(enabled())try{await updateDoc(doc(db,'trades',id),{status:'rejected',resolvedAt:serverTimestamp()})}catch(e){note(e.message,true)}
 };
 
-// 트랜잭션으로 안전하게 거래 처리
 window.acceptTrade=async id=>{
     try{
         await runTransaction(db,async tx=>{
@@ -784,15 +1222,15 @@ function drawMarket(){
             datasets:[{
                 label:labels[k]+' 단가 (₩)',
                 data:d.map(x=>x.unitPrice),
-                borderColor:'#5de0e6',backgroundColor:'rgba(93,224,230,.15)',fill:true,tension:.35,pointBackgroundColor:'#f8c94d', pointRadius: 4, pointHoverRadius: 6
+                borderColor:'#5de0e6',backgroundColor:'rgba(93,224,230,.2)',fill:true,tension:.4,pointBackgroundColor:'#f8c94d', pointRadius: 5, pointHoverRadius: 8
             }]
         },
         options:{
             responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{labels:{color:'#eaf2ff'}}},
+            plugins:{legend:{labels:{color:'#eaf2ff', font: {family: 'ui-sans-serif, system-ui'}}}},
             scales:{
-                x:{ticks:{color:'#9fb0c9', maxTicksLimit: 10},grid:{color:'rgba(159,176,201,.1)'}},
-                y:{beginAtZero:true,ticks:{color:'#9fb0c9',callback:v=>'₩'+fmt(v)},grid:{color:'rgba(159,176,201,.1)'}}
+                x:{ticks:{color:'#9fb0c9', maxTicksLimit: 8},grid:{color:'rgba(159,176,201,.15)'}},
+                y:{beginAtZero:true,ticks:{color:'#9fb0c9',callback:v=>'₩'+fmt(v)},grid:{color:'rgba(159,176,201,.15)'}}
             }
         }
     })
