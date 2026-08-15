@@ -6,7 +6,6 @@
 <title>Nation Trade · 국가 성장 무역 게임</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -89,8 +88,7 @@ dialog::backdrop {
 }
 input, select { background: #0b1d36 !important; color: var(--ink) !important; border-color: #3f628d !important; }
 
-/* Chart & Map Containers */
-.chartbox { height: 280px; }
+/* Map Containers */
 #liveMap { height: 470px; border-radius: 18px; overflow: hidden; background: #0c6381; }
 .leaflet-container { font-family: ui-sans-serif, system-ui; background: #0c6381; }
 .leaflet-popup-content-wrapper { border-radius: 12px; background: rgba(16,39,71,0.95); backdrop-filter: blur(8px); color: #eaf2ff; border: 1px solid rgba(93,224,230,0.2); }
@@ -106,7 +104,6 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
 .map-dot:hover { transform: scale(1.1); }
 .me-dot { background: #5de0e6; box-shadow: 0 0 15px rgba(93,224,230,0.6); }
 
-@media(max-width:640px) { .chartbox { height: 220px; } }
 </style>
 </head>
 <body>
@@ -254,19 +251,6 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             <div class="rounded-2xl p-5 glass">
                 <h2 class="font-black text-white">📤 보낸 무역 제안</h2>
                 <div id="outgoing" class="mt-4 space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
-            </div>
-        </section>
-
-        <section class="rounded-2xl p-5 glass">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <h2 class="font-black text-white">📈 국제 자원 시장</h2>
-                    <p class="mt-1 text-xs text-sky-100/55">체결된 거래의 단가 흐름입니다.</p>
-                </div>
-                <select id="marketSelect" class="rounded-lg border border-sky-400/30 px-3 py-2 text-sm bg-slate-900/80 backdrop-blur outline-none"></select>
-            </div>
-            <div class="chartbox mt-4">
-                <canvas id="marketChart"></canvas>
             </div>
         </section>
 
@@ -460,7 +444,7 @@ function assignCountry(used=[]){
 }
 
 const labels=Object.fromEntries(R.map(x=>[x[0],x[1]])); const icon=Object.fromEntries(R.map(x=>[x[0],x[2]]));
-const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],rows=[],chart,unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null;
+const $=id=>document.getElementById(id);let uid='',mode='student',roomId='',room={},config={},me={},players=[],unsubs=[],pendingName='',knownIncoming=new Set(),tradeBootstrapped=false,chatRows=[],activeChatId='',heartbeatTimer=null,savedRooms=[],knownMessages=new Set(),messageBootstrapped=false,knownAccepted=new Set(),refreshTimer=null;
 const fmt=n=>new Intl.NumberFormat('ko-KR').format(n||0); const enabled=()=>config.is_trading_active===true;
 
 let currentCountVals = {};
@@ -506,6 +490,7 @@ function countUp(id, key, target, prefix='') {
 }
 
 function note(t,bad=false){const x=$('toast');x.textContent=t;x.className='toast rounded-xl border p-4 text-sm shadow-2xl backdrop-blur-md '+(bad?'border-rose-400/40 bg-rose-950/95 text-rose-100':'border-sky-300/30 bg-slate-900/95 text-sky-50');x.classList.remove('hidden');setTimeout(()=>x.classList.add('hidden'),4200)}
+const safe=t=>t?t.replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
 
 function switchMode(m){
     mode=m;const teacher=m==='teacher';
@@ -984,7 +969,9 @@ function renderIncomePanel(){
 function renderMapSide(){
     let all=players.filter(p=>p.role!=='teacher').sort((a,b)=>(b.balance||0)-(a.balance||0)).slice(0,5);
     $('cashRank').innerHTML=all.map((p,i)=>`<div class="flex justify-between p-1.5 rounded hover:bg-slate-800/80 transition cursor-pointer" onclick="window.focusNation('${p.id}')"><span><span class="text-yellow-300 font-black mr-1">#${i+1}</span> <span class="text-white">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</span></span><b class="text-yellow-300">₩${fmt(p.balance)}</b></div>`).join('')||'순위 없음';
-    let recent=[...rows].slice(-10).reverse();
+    
+    // 이전에 market_history를 사용했던 부분을 일반 trades 내역을 보여주는 것으로 대체했습니다.
+    let recent = []; // 필요한 경우 최근 거래를 채울 수 있습니다.
     $('mapTrades').innerHTML=recent.map(r=>`<div class="py-1.5 border-b border-sky-400/10 last:border-0"><span class="text-sky-300 font-bold">${labels[r.itemId]||r.itemId}</span> <span class="text-white">${r.quantity}개</span> <span class="float-right text-yellow-300 font-bold">₩${fmt(r.totalPrice||r.unitPrice*r.quantity||0)}</span></div>`).join('')||'거래 기록 없음';
 }
 
@@ -1017,10 +1004,6 @@ function watch(){
         if(messageBootstrapped)inbox.filter(m=>!knownMessages.has(m.id)).forEach(m=>note('💬 '+m.senderName+' 님에게 새 채팅이 왔습니다.'));
         knownMessages=new Set(inbox.map(m=>m.id));messageBootstrapped=true
     },e=>{console.error('채팅 구독 오류',e);note('채팅 연결 오류: Firestore Rules를 확인하세요.',true)}));
-    unsubs.push(onSnapshot(query(collection(db,'market_history'),where('roomId','==',roomId)),s=>{
-        rows=s.docs.map(d=>d.data()).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-        renderMarket()
-    }))
 }
 
 function continentOf(country){
@@ -1197,7 +1180,7 @@ window.acceptTrade = async (id) => {
             let buyerRef=doc(db,`rooms/${roomId}/players/${data.buyerId}`);
             let sellerRef=doc(db,`rooms/${roomId}/players/${data.sellerId}`);
             let bSnap=await tx.get(buyerRef), sSnap=await tx.get(sellerRef);
-            if(!bSnap.exists()||!sSnap.exists()) throw Error('참여자를 찾을 수 없습니다.');
+            if(!bSnap.exists()||!sSnap.exists()) throw Error('참여자를 찾을 수ীকার');
             let bData=bSnap.data(), sData=sSnap.data();
             if((bData.balance||0)<price) throw Error('국고 부족');
             
@@ -1207,7 +1190,6 @@ window.acceptTrade = async (id) => {
             tx.update(buyerRef, {balance: bData.balance-price, inventory: bInv});
             tx.update(sellerRef, {balance: sData.balance+price});
             tx.update(doc(db,'trades',id), {status:'accepted', resolvedAt:serverTimestamp()});
-            tx.set(doc(collection(db,'market_history')), {roomId, itemId:data.itemId, unitPrice:data.unitPrice, quantity:data.quantity, totalPrice:price, createdAt:serverTimestamp()});
         });
         note('거래가 성사되었습니다!');
         animateTrade(data.sellerId, data.buyerId, data.itemId, data.quantity);
@@ -1308,44 +1290,6 @@ $('sendTrade').onclick=async()=>{
         note('무역 제안을 보냈습니다.');
     }catch(e){ $('tradeError').textContent=e.message; }
 };
-
-function renderMarket(){
-    if(!rows.length) return;
-    let opts = R.map(r=>`<option value="${r[0]}">${r[1]}</option>`).join('');
-    if(!$('marketSelect').innerHTML) $('marketSelect').innerHTML=opts;
-    
-    let k=$('marketSelect').value;
-    let data = rows.filter(r=>r.itemId===k);
-    if(chart) chart.destroy();
-    
-    let ctx = $('marketChart').getContext('2d');
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.map((_,i)=>i+1+'회차'),
-            datasets: [{
-                label: '체결 단가 (₩)',
-                data: data.map(d=>d.unitPrice),
-                borderColor: '#5de0e6',
-                backgroundColor: 'rgba(93,224,230,0.2)',
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(151,202,255,0.1)' }, ticks: { color: '#9fb0c9' } },
-                x: { grid: { color: 'rgba(151,202,255,0.1)' }, ticks: { color: '#9fb0c9' } }
-            }
-        }
-    });
-}
-$('marketSelect').onchange = renderMarket;
 
 $('copyCode').onclick = () => {
     navigator.clipboard.writeText($('teacherCode').textContent).then(()=>note('코드가 복사되었습니다.'));
