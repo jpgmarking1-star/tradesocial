@@ -308,23 +308,49 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
     </section>
 </main>
 
-<dialog id="tradeModal" class="dialog w-[min(92vw,520px)] rounded-2xl p-0">
-    <div class="p-6">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xl font-black text-white">새 무역 제안</h2>
-            <button onclick="tradeModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
-        </div>
-        <p class="mt-1 text-sm text-sky-100/60">내 자원을 다른 국가에 판매합니다.</p>
-        <div class="mt-5 grid gap-4">
-            <label class="text-sm font-bold text-sky-100">거래 상대<select id="buyer" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
-            <label class="text-sm font-bold text-sky-100">판매 자원<select id="item" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none"></select></label>
-            <div class="grid grid-cols-2 gap-3">
-                <label class="text-sm font-bold text-sky-100">수량<input id="quantity" type="number" min="1" value="1" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400"></label>
-                <label class="text-sm font-bold text-sky-100">총 거래 금액 (국고)<input id="price" type="number" min="1" value="100" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400"></label>
+<dialog id="tradeModal" class="dialog w-[min(96vw,850px)] rounded-2xl p-0">
+    <div class="flex flex-col md:flex-row h-[550px]">
+        <!-- 왼쪽: 거래 제안 폼 -->
+        <div class="p-6 md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-sky-400/20 overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-black text-white">1:1 무역 및 채팅</h2>
+                <button onclick="tradeModal.close()" class="md:hidden text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
             </div>
+            <p class="mt-1 text-sm text-sky-100/60 mb-5">상대를 선택하여 거래를 제안하거나 대화하세요.</p>
+            
+            <label class="text-sm font-bold text-sky-100">거래 상대
+                <select id="buyer" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none mb-4"></select>
+            </label>
+            <label class="text-sm font-bold text-sky-100">판매 자원
+                <select id="item" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none mb-4"></select>
+            </label>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <label class="text-sm font-bold text-sky-100">수량
+                    <input id="quantity" type="number" min="1" value="1" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400">
+                </label>
+                <label class="text-sm font-bold text-sky-100">총 거래 금액 (국고)
+                    <input id="price" type="number" min="1" value="100" class="mt-1 w-full rounded-lg border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400">
+                </label>
+            </div>
+            
+            <p id="tradeError" class="mt-auto min-h-5 text-sm text-rose-300 font-bold mb-2"></p>
+            <button id="sendTrade" class="trade-action w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">제안 보내기</button>
         </div>
-        <p id="tradeError" class="mt-3 min-h-5 text-sm text-rose-300 font-bold"></p>
-        <button id="sendTrade" class="trade-action mt-3 w-full rounded-xl bg-cyan-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">제안 보내기</button>
+        
+        <!-- 오른쪽: 1:1 채팅 폼 -->
+        <div class="p-6 md:w-1/2 flex flex-col bg-slate-950/40 relative">
+            <button onclick="tradeModal.close()" class="hidden md:block absolute top-4 right-4 text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
+            <div>
+                <p class="text-xs font-bold tracking-widest text-cyan-200">PRIVATE CHANNEL</p>
+                <h2 id="chatTitle" class="mt-1 text-lg font-black text-white">상대를 선택하세요</h2>
+            </div>
+            <div id="chatMessages" class="mt-4 flex-1 space-y-2 overflow-y-auto rounded-xl border border-sky-400/20 bg-slate-900/80 p-3 shadow-inner"></div>
+            <div class="mt-3 flex gap-2">
+                <input id="chatInput" maxlength="250" class="min-w-0 flex-1 rounded-xl border border-sky-400/30 px-3 py-2 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400" placeholder="메시지를 입력하세요">
+                <button id="sendChat" class="rounded-xl bg-cyan-400 px-4 py-2 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">전송</button>
+            </div>
+            <p class="mt-2 text-[11px] text-sky-100/45 text-center">교사는 모든 채팅 기록을 확인할 수 있습니다.</p>
+        </div>
     </div>
 </dialog>
 
@@ -403,25 +429,6 @@ input, select { background: #0b1d36 !important; color: var(--ink) !important; bo
             <label class="text-sm font-bold text-sky-100">첨단자원<input id="grantAdvanced" type="number" min="0" value="0" class="mt-1 w-full rounded-xl border border-sky-400/30 p-3 bg-slate-900/80 text-white outline-none focus:border-cyan-400"></label>
         </div>
         <button id="grantSubmit" class="mt-5 w-full rounded-xl bg-yellow-400 px-4 py-3 font-black text-slate-950 shadow-md transition hover:bg-yellow-300">무제한 지원하기</button>
-    </div>
-</dialog>
-
-<dialog id="chatModal" class="dialog w-[min(94vw,510px)] rounded-2xl p-0">
-    <div class="p-5">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs font-bold tracking-widest text-cyan-200">PRIVATE CHANNEL</p>
-                <h2 id="chatTitle" class="mt-1 text-lg font-black text-white">1:1 채팅</h2>
-            </div>
-            <button onclick="chatModal.close()" class="text-2xl text-sky-100/70 hover:text-white transition">&times;</button>
-        </div>
-        <div id="chatMessages" class="mt-4 h-72 space-y-2 overflow-y-auto rounded-xl border border-sky-400/20 bg-slate-950/50 p-3 shadow-inner"></div>
-        <div class="mt-3 flex gap-2">
-            <input id="chatInput" maxlength="250" class="min-w-0 flex-1 rounded-xl border border-sky-400/30 px-3 py-2 bg-slate-900/80 text-white outline-none transition focus:border-cyan-400" placeholder="메시지를 입력하세요">
-            <button id="sendChat" class="rounded-xl bg-cyan-400 px-4 py-2 font-black text-slate-950 shadow-md transition hover:bg-cyan-300">전송</button>
-        </div>
-        <button id="chatTradeBtn" class="mt-3 w-full rounded-xl bg-gradient-to-r from-yellow-300 to-orange-400 px-4 py-2.5 font-black text-slate-950 shadow-md transition hover:opacity-90">🤝 이 학생과 바로 거래하기</button>
-        <p class="mt-2 text-xs text-sky-100/45 text-center">교사는 수업 안전을 위해 모든 1:1 채팅 기록을 확인할 수 있습니다.</p>
     </div>
 </dialog>
 
@@ -735,10 +742,6 @@ function renderMapPlayers(){
     });
     renderPlayerList()
 }
-window.tradeWith=id=>{
-    if(!enabled()){note('교사가 무역소를 정지했습니다.',true);return}
-    $('buyer').value=id;$('tradeModal').showModal()
-};
 
 async function pingPresence(){
     if(!roomId||!uid)return;
@@ -755,27 +758,52 @@ function startHeartbeat(){
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)pingPresence()})
 }
 
-function openChat(id){
+function updateChatTitle() {
+    let target = players.find(p=>p.id===activeChatId);
+    if(target) {
+        $('chatTitle').textContent = (target.countryFlag||'🌐')+' '+(target.country||target.displayName)+' · 1:1 채팅';
+    } else {
+        $('chatTitle').textContent = '상대를 선택하세요';
+        $('chatMessages').innerHTML = '<p class="pt-20 text-center text-sm text-sky-100/50">상대를 선택하면 채팅이 시작됩니다.</p>';
+    }
+}
+
+$('buyer').addEventListener('change', (e) => {
+    activeChatId = e.target.value;
+    updateChatTitle();
+    renderChat();
+});
+
+window.openChat = id => {
     if(id===uid){note('내 국가에는 메시지를 보낼 수 없습니다.',true);return}
     let target=players.find(p=>p.id===id);if(!target)return;
     activeChatId=id;
-    $('chatTitle').textContent=(target.countryFlag||'🌐')+' '+(target.country||target.displayName)+' · 1:1 채팅';
-    renderChat();$('chatModal').showModal();
+    $('buyer').value=id; 
+    updateChatTitle();
+    renderChat();
+    $('tradeModal').showModal();
     setTimeout(()=>$('chatInput').focus(),100)
-}
-window.openChat=openChat;
-$('chatTradeBtn').onclick=()=>{
-    if(!activeChatId)return;
-    if(!enabled())return note('교사가 무역소를 정지했습니다.',true);
-    $('buyer').value=activeChatId;$('chatModal').close();$('tradeModal').showModal()
+};
+
+window.tradeWith = id => {
+    if(!enabled()){note('교사가 무역소를 정지했습니다.',true);return}
+    activeChatId=id;
+    $('buyer').value=id;
+    updateChatTitle();
+    renderChat();
+    $('tradeModal').showModal();
 };
 
 function renderChat(){
-    if(!activeChatId)return;
+    if(!activeChatId) {
+        $('chatMessages').innerHTML = '<p class="pt-20 text-center text-sm text-sky-100/50">상대를 선택하면 채팅이 시작됩니다.</p>';
+        return;
+    }
     let messages=chatRows.filter(m=>(m.senderId===uid&&m.receiverId===activeChatId)||(m.senderId===activeChatId&&m.receiverId===uid));
     $('chatMessages').innerHTML=messages.length?messages.map(m=>`<div class="flex ${m.senderId===uid?'justify-end':'justify-start'} mb-2"><div class="max-w-[80%] rounded-xl px-3 py-2 text-sm ${m.senderId===uid?'bg-cyan-400 text-slate-950 shadow-md':'bg-slate-700 text-white shadow-md'}"><b class="block text-[10px] opacity-70 mb-1">${safe(m.senderName||'')}</b>${safe(m.text||'')}</div></div>`).join(''):'<p class="pt-20 text-center text-sm text-sky-100/50">대화를 시작해 보세요.</p>';
     $('chatMessages').scrollTop=$('chatMessages').scrollHeight
 }
+
 async function sendMessage(){
     let text=$('chatInput').value.trim(),to=players.find(p=>p.id===activeChatId);
     if(!text||to==null)return;
@@ -828,7 +856,7 @@ window.resetStudent=async id=>{
 function animateTrade(sellerId,buyerId,itemId='',quantity=0){
     if(!map||!markersById[sellerId]||!markersById[buyerId])return;
     let a=markersById[sellerId].getLatLng(),b=markersById[buyerId].getLatLng(),label=`✈️ ${labels[itemId]||'자원'} ${quantity}개`;
-    let plane=L.marker(a,{interactive:false,icon:L.divIcon({className:'trade-ship',html:`<div style="white-space:nowrap; background:rgba(0,0,0,0.7); padding:6px 10px; border-radius:10px; color:white; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1);">${label}</div>`,iconSize:[150,30],iconAnchor:[15,15]})}).addTo(map);
+    let plane=L.marker(a,{interactive:false,icon:L.divIcon({className:'trade-ship',html:`<div style="white-space:nowrap; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:8px; color:white; font-size:12px; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1);">${label}</div>`,iconSize:[150,30],iconAnchor:[15,15]})}).addTo(map);
     let t=0,frames=60,timer=setInterval(()=>{
         t++;plane.setLatLng([a.lat+(b.lat-a.lat)*t/frames,a.lng+(b.lng-a.lng)*t/frames]);
         if(t>=frames){
@@ -1088,11 +1116,30 @@ function renderMe(){
 
 function fillForm(){
     const inv=me.inventory||{};
+    let prevBuyer = $('buyer').value;
+    
     $('buyer').innerHTML=players.filter(p=>p.id!==uid&&p.role!=='teacher').map(p=>`<option value="${p.id}">${safe(p.countryFlag||'🌐')} ${safe(p.country||p.displayName)}</option>`).join('')||'<option value="">거래할 학생이 없습니다</option>';
-    $('item').innerHTML=R.filter(([k])=>(inv[k]||0)>0).map(([k,n])=>`<option value="${k}">${n} · 보유 ${fmt(inv[k])}</option>`).join('')||'<option value="">판매할 자원이 없습니다</option>'
+    
+    if (prevBuyer && players.find(p=>p.id===prevBuyer)) {
+        $('buyer').value = prevBuyer;
+    } else {
+        let firstPeer = players.find(p=>p.id!==uid&&p.role!=='teacher');
+        if (firstPeer) {
+            $('buyer').value = firstPeer.id;
+            activeChatId = firstPeer.id;
+        } else {
+            activeChatId = '';
+        }
+        updateChatTitle();
+    }
+    
+    let prevItem = $('item').value;
+    $('item').innerHTML=R.filter(([k])=>(inv[k]||0)>0).map(([k,n])=>`<option value="${k}">${n} · 보유 ${fmt(inv[k])}</option>`).join('')||'<option value="">판매할 자원이 없습니다</option>';
+    if (prevItem && (inv[prevItem]||0)>0) {
+        $('item').value = prevItem;
+    }
 }
 
-function safe(t=''){let d=document.createElement('div');d.textContent=t;return d.innerHTML}
 function card(t,incoming){
     let total=(t.totalPrice||t.quantity*t.unitPrice||0);
     return `<div class="rounded-xl border border-sky-400/20 bg-slate-900/60 p-4 hover:border-sky-400/50 hover:bg-slate-800/80 transition shadow-md">
@@ -1103,136 +1150,206 @@ function card(t,incoming){
             </div>
             <div class="text-right">
                 <p class="font-black text-yellow-300 text-lg drop-shadow-md">₩${fmt(total)}</p>
-                <p class="mt-1 text-xs font-bold ${t.status==='pending'?'text-cyan-300':t.status==='accepted'?'text-emerald-400':'text-rose-400'}">${t.status==='pending'?'대기 중':t.status==='accepted'?'체결 완료':'거절됨'}</p>
+                <p class="mt-1 text-xs text-sky-100/60">단가 ₩${fmt(t.unitPrice)}</p>
             </div>
         </div>
-        ${incoming&&t.status==='pending'?`<div class="mt-4 flex gap-2"><button onclick="window.acceptTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 transition px-3 py-2.5 text-sm font-black text-white shadow-lg transform hover:-translate-y-0.5">수락</button><button onclick="window.rejectTrade('${t.id}')" class="trade-action flex-1 rounded-lg bg-slate-700 hover:bg-rose-500 transition px-3 py-2.5 text-sm font-black text-white shadow-lg transform hover:-translate-y-0.5">거절</button></div>`:''}
+        ${t.status==='pending' && incoming && enabled() ? `<div class="mt-3 flex gap-2"><button onclick="window.acceptTrade('${t.id}')" class="flex-1 rounded-lg bg-emerald-400 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:bg-emerald-300">수락</button><button onclick="window.rejectTrade('${t.id}')" class="flex-1 rounded-lg bg-rose-400 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:bg-rose-300">거절</button></div>` : ''}
+        ${t.status==='pending' && !incoming ? `<div class="mt-3 flex gap-2"><button onclick="window.cancelTrade('${t.id}')" class="flex-1 rounded-lg bg-slate-700 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-600">제안 취소</button></div>` : ''}
+        ${t.status==='accepted' ? `<div class="mt-3 text-center text-sm font-bold text-emerald-400">거래 성사됨</div>` : ''}
+        ${t.status==='rejected' ? `<div class="mt-3 text-center text-sm font-bold text-rose-400">거절됨</div>` : ''}
+        ${t.status==='canceled' ? `<div class="mt-3 text-center text-sm font-bold text-slate-400">취소됨</div>` : ''}
     </div>`
 }
 
-function renderTrades(ts){
-    ts.filter(t=>t.status==='accepted'&&!knownAccepted.has(t.id)).forEach(t=>{
-        if(knownAccepted.size)animateTrade(t.sellerId,t.buyerId,t.itemId,t.quantity);
-        knownAccepted.add(t.id)
-    });
+function renderTrades(all){
+    let inTrades=all.filter(t=>t.buyerId===uid),outTrades=all.filter(t=>t.sellerId===uid);
+    $('incomingCount').textContent=inTrades.filter(t=>t.status==='pending').length;
+    $('incoming').innerHTML=inTrades.length?inTrades.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)).map(t=>card(t,true)).join(''):'<p class="text-sm text-sky-100/50 text-center py-4">받은 제안이 없습니다.</p>';
+    $('outgoing').innerHTML=outTrades.length?outTrades.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)).map(t=>card(t,false)).join(''):'<p class="text-sm text-sky-100/50 text-center py-4">보낸 제안이 없습니다.</p>';
     
-    let a=ts.filter(t=>t.buyerId===uid).sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0));
-    let b=ts.filter(t=>t.sellerId===uid).sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0));
-    let pendingA = a.filter(t=>t.status==='pending');
-    
-    $('incomingCount').textContent=pendingA.length;
-    $('incoming').innerHTML=a.length?a.map(t=>card(t,true)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">받은 무역 제안이 없습니다.</p>';
-    $('outgoing').innerHTML=b.length?b.map(t=>card(t,false)).join(''):'<p class="text-sm text-sky-100/55 text-center py-4">보낸 제안이 없습니다.</p>';
-
-    let now=new Set(pendingA.map(t=>t.id));
-    if(tradeBootstrapped) pendingA.filter(t=>!knownIncoming.has(t.id)).forEach(t=>note('📨 새 무역 제안: '+t.sellerName+' · '+labels[t.itemId]+' × '+t.quantity));
-    knownIncoming=now;tradeBootstrapped=true;
-
-    if(config.teacherUid===uid){
-        let recent=[...ts].sort((x,y)=>(y.createdAt?.seconds||0)-(x.createdAt?.seconds||0)).slice(0,30);
-        $('teacherTradeCount').textContent='최근 '+recent.length+'건';
-        $('teacherTrades').innerHTML=recent.length?recent.map(t=>`<div class="rounded-lg border border-yellow-300/20 bg-slate-900/60 p-3 text-sm shadow-sm hover:bg-slate-800 transition"><b>${safe(t.sellerName)}</b> <span class="text-sky-200">→</span> <b>${safe(t.buyerName)}</b><br><span class="text-yellow-200 mt-1 block font-bold">${labels[t.itemId]} × ${fmt(t.quantity)} · ₩${fmt((t.totalPrice||t.quantity*t.unitPrice||0))}</span><span class="float-right text-xs font-bold ${t.status==='accepted'?'text-emerald-400':t.status==='rejected'?'text-rose-400':'text-cyan-300'} -mt-4">${t.status==='accepted'?'체결':t.status==='rejected'?'거절':'대기'}</span></div>`).join(''):'<p class="text-sm text-yellow-100/60">아직 거래 기록이 없습니다.</p>'
+    if(tradeBootstrapped){
+        inTrades.filter(t=>t.status==='pending'&&!knownIncoming.has(t.id)).forEach(t=>note(`📦 ${t.sellerName} 님이 ${labels[t.itemId]} ${t.quantity}개 거래를 제안했습니다!`));
+        
+        let accepted = outTrades.filter(t=>t.status==='accepted'&&!knownAccepted.has(t.id));
+        accepted.forEach(t=>{
+            note(`✅ ${t.buyerName} 님이 제안을 수락했습니다!`);
+            animateTrade(t.sellerId, t.buyerId, t.itemId, t.quantity);
+            knownAccepted.add(t.id);
+        });
     }
+    knownIncoming=new Set(inTrades.filter(t=>t.status==='pending').map(t=>t.id));
+    
+    if(config.teacherUid===uid){
+        let hist=all.filter(t=>t.status==='accepted').sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)).slice(0,30);
+        $('teacherTradeCount').textContent=`체결 ${hist.length}건`;
+        $('teacherTrades').innerHTML=hist.length?hist.map(t=>`<div class="rounded-lg border border-yellow-300/15 bg-slate-900/50 p-2 text-xs"><b>${safe(t.sellerName)}</b> <span class="text-yellow-100/55">→</span> <b>${safe(t.buyerName)}</b><br><span class="text-yellow-200">₩${fmt(t.totalPrice||t.quantity*t.unitPrice)}</span> · ${labels[t.itemId]} ${fmt(t.quantity)}개</div>`).join(''):'<p class="text-xs text-yellow-100/60">아직 거래가 없습니다.</p>';
+    }
+    tradeBootstrapped=true;
 }
 
+window.acceptTrade = async (id) => {
+    let t=await getDoc(doc(db,'trades',id));
+    if(!t.exists()||t.data().status!=='pending') return note('유효하지 않은 거래입니다.',true);
+    let data=t.data(), price=data.totalPrice||(data.quantity*data.unitPrice);
+    if((me.balance||0)<price) return note('국고가 부족합니다.',true);
+    try{
+        await runTransaction(db, async tx=>{
+            let buyerRef=doc(db,`rooms/${roomId}/players/${data.buyerId}`);
+            let sellerRef=doc(db,`rooms/${roomId}/players/${data.sellerId}`);
+            let bSnap=await tx.get(buyerRef), sSnap=await tx.get(sellerRef);
+            if(!bSnap.exists()||!sSnap.exists()) throw Error('참여자를 찾을 수 없습니다.');
+            let bData=bSnap.data(), sData=sSnap.data();
+            if((bData.balance||0)<price) throw Error('국고 부족');
+            
+            let bInv={...(bData.inventory||{})}, sInv={...(sData.inventory||{})};
+            bInv[data.itemId]=(bInv[data.itemId]||0)+data.quantity;
+            
+            tx.update(buyerRef, {balance: bData.balance-price, inventory: bInv});
+            tx.update(sellerRef, {balance: sData.balance+price});
+            tx.update(doc(db,'trades',id), {status:'accepted', resolvedAt:serverTimestamp()});
+            tx.set(doc(collection(db,'market_history')), {roomId, itemId:data.itemId, unitPrice:data.unitPrice, quantity:data.quantity, totalPrice:price, createdAt:serverTimestamp()});
+        });
+        note('거래가 성사되었습니다!');
+        animateTrade(data.sellerId, data.buyerId, data.itemId, data.quantity);
+    }catch(e){ note('오류: '+e.message, true); }
+};
+
+window.rejectTrade = async (id) => {
+    try{
+        await runTransaction(db, async tx=>{
+            let tRef=doc(db,'trades',id);
+            let tSnap=await tx.get(tRef);
+            if(tSnap.exists() && tSnap.data().status==='pending'){
+                let sRef=doc(db,`rooms/${roomId}/players/${tSnap.data().sellerId}`);
+                let sSnap=await tx.get(sRef);
+                if(sSnap.exists()){
+                    let sInv={...(sSnap.data().inventory||{})};
+                    sInv[tSnap.data().itemId]=(sInv[tSnap.data().itemId]||0)+tSnap.data().quantity;
+                    tx.update(sRef, {inventory: sInv});
+                }
+                tx.update(tRef, {status:'rejected', resolvedAt:serverTimestamp()});
+            }
+        });
+        note('거래를 거절했습니다.');
+    }catch(e){ note('오류: '+e.message, true); }
+};
+
+window.cancelTrade = async (id) => {
+    try{
+        await runTransaction(db, async tx=>{
+            let tRef=doc(db,'trades',id);
+            let tSnap=await tx.get(tRef);
+            if(tSnap.exists() && tSnap.data().status==='pending' && tSnap.data().sellerId===uid){
+                let sRef=doc(db,`rooms/${roomId}/players/${uid}`);
+                let sSnap=await tx.get(sRef);
+                if(sSnap.exists()){
+                    let sInv={...(sSnap.data().inventory||{})};
+                    sInv[tSnap.data().itemId]=(sInv[tSnap.data().itemId]||0)+tSnap.data().quantity;
+                    tx.update(sRef, {inventory: sInv});
+                }
+                tx.update(tRef, {status:'canceled', resolvedAt:serverTimestamp()});
+            }
+        });
+        note('제안을 취소했습니다.');
+    }catch(e){ note('오류: '+e.message, true); }
+};
+
 $('openTrade').onclick=()=>{
-    if(!enabled()){note('교사가 무역소를 정지했습니다.',true);return;}
+    if(!enabled()) return note('교사가 무역소를 정지했습니다.',true);
+    if(players.filter(p=>p.id!==uid&&p.role!=='teacher').length===0) return note('거래할 상대가 아직 없습니다.',true);
+    
+    let valid = players.find(p => p.id === $('buyer').value);
+    if(!valid) {
+        let firstPeer = players.find(p=>p.id!==uid&&p.role!=='teacher');
+        if (firstPeer) {
+            $('buyer').value = firstPeer.id;
+            activeChatId = firstPeer.id;
+        }
+    } else {
+        activeChatId = valid.id;
+    }
+    
+    updateChatTitle();
+    renderChat();
     $('tradeModal').showModal();
 };
 
 $('sendTrade').onclick=async()=>{
-    let buyerId=$('buyer').value,itemId=$('item').value,quantity=+$('quantity').value,totalPrice=+$('price').value;
+    let buyerId=$('buyer').value, itemId=$('item').value, qty=Number($('quantity').value), price=Number($('price').value);
     $('tradeError').textContent='';
-    if(!enabled())return;
-    if(!buyerId||!itemId||!Number.isInteger(quantity)||quantity<1||!Number.isFinite(totalPrice)||totalPrice<1)return $('tradeError').textContent='상대, 자원, 수량과 단가를 확인하세요.';
-    if((me.inventory?.[itemId]||0)<quantity)return $('tradeError').textContent='보유 자원이 부족합니다.';
+    if(!buyerId) return $('tradeError').textContent='상대를 선택하세요.';
+    if(!itemId) return $('tradeError').textContent='자원을 선택하세요.';
+    if(qty<1 || price<1) return $('tradeError').textContent='수량과 금액은 1 이상이어야 합니다.';
     
-    let b=players.find(x=>x.id===buyerId);
+    let inv=me.inventory||{};
+    if((inv[itemId]||0)<qty) return $('tradeError').textContent='보유 자원이 부족합니다.';
+    
+    let buyer=players.find(p=>p.id===buyerId);
+    
     try{
-        await addDoc(collection(db,'trades'),{
-            roomId,sellerId:uid,sellerName:me.country||me.displayName,buyerId,buyerName:b?.country||b?.displayName||'',
-            itemId,quantity,totalPrice,status:'pending',createdAt:serverTimestamp()
+        await runTransaction(db, async tx=>{
+            let sRef=doc(db,`rooms/${roomId}/players/${uid}`);
+            let sSnap=await tx.get(sRef);
+            let d=sSnap.data(), cInv={...(d.inventory||{})};
+            if((cInv[itemId]||0)<qty) throw Error('보유 자원이 부족합니다.');
+            cInv[itemId]-=qty;
+            tx.update(sRef, {inventory: cInv});
+            
+            let tRef=doc(collection(db,'trades'));
+            tx.set(tRef, {
+                roomId,
+                sellerId:uid, sellerName:me.country||me.displayName||'',
+                buyerId, buyerName:buyer?.country||buyer?.displayName||'',
+                itemId, quantity:qty, unitPrice:Math.floor(price/qty), totalPrice:price,
+                status:'pending', createdAt:serverTimestamp()
+            });
         });
         $('tradeModal').close();
-        note('무역 제안을 보냈습니다.')
-    }catch(e){$('tradeError').textContent=e.message}
-};
-
-window.rejectTrade=async id=>{
-    if(enabled())try{await updateDoc(doc(db,'trades',id),{status:'rejected',resolvedAt:serverTimestamp()})}catch(e){note(e.message,true)}
-};
-
-window.acceptTrade=async id=>{
-    try{
-        await runTransaction(db,async tx=>{
-            const tr=doc(db,'trades',id),cf=doc(db,`rooms/${roomId}/config/settings`);
-            const [ts,cs]=await Promise.all([tx.get(tr),tx.get(cf)]);
-            if(!ts.exists())throw Error('거래를 찾을 수 없습니다.');
-            
-            let t=ts.data();
-            if(t.buyerId!==uid||t.status!=='pending')throw Error('이미 처리된 거래입니다.');
-            if(cs.data()?.is_trading_active!==true)throw Error('무역소가 정지되었습니다.');
-            
-            const sr=doc(db,`rooms/${roomId}/players/${t.sellerId}`),br=doc(db,`rooms/${roomId}/players/${t.buyerId}`);
-            const [ss,bs]=await Promise.all([tx.get(sr),tx.get(br)]);
-            let seller=ss.data(),buyer=bs.data(),cost=(t.totalPrice||t.quantity*t.unitPrice||0);
-            
-            if(!seller||!buyer)throw Error('참여자 정보를 찾을 수 없습니다.');
-            let si={...(seller.inventory||{})},bi={...(buyer.inventory||{})};
-            
-            if((si[t.itemId]||0)<t.quantity)throw Error('판매 국가의 자원이 부족합니다.');
-            if((buyer.balance||0)<cost)throw Error('국고가 부족합니다.');
-            
-            si[t.itemId]-=t.quantity;
-            bi[t.itemId]=(bi[t.itemId]||0)+t.quantity;
-            
-            tx.update(sr,{inventory:si,balance:(seller.balance||0)+cost});
-            tx.update(br,{inventory:bi,balance:(buyer.balance||0)-cost});
-            tx.update(tr,{status:'accepted',resolvedAt:serverTimestamp()});
-            tx.set(doc(collection(db,'market_history')),{roomId,itemId:t.itemId,unitPrice:(t.totalPrice||t.quantity*t.unitPrice||0)/t.quantity,quantity:t.quantity,tradeId:id,createdAt:serverTimestamp()})
-        });
-        note('무역이 체결되었습니다!');
-    }catch(e){note('수락 실패: '+e.message,true)}
-};
-
-$('toggleTrading').onclick=async()=>{
-    if(config.teacherUid!==uid)return;
-    try{await updateDoc(doc(db,`rooms/${roomId}/config/settings`),{is_trading_active:!enabled(),updatedAt:serverTimestamp()})}catch(e){note(e.message,true)}
-};
-$('copyCode').onclick=async()=>{
-    try{
-        await navigator.clipboard.writeText(config.inviteCode||room.inviteCode);
-        note('4자리 방 코드를 복사했습니다.')
-    }catch(e){note('코드: '+(config.inviteCode||room.inviteCode))}
+        note('무역 제안을 보냈습니다.');
+    }catch(e){ $('tradeError').textContent=e.message; }
 };
 
 function renderMarket(){
-    let options=R.map(([k,n])=>`<option value="${k}">${n}</option>`).join(''),old=$('marketSelect').value;
-    $('marketSelect').innerHTML=options;$('marketSelect').value=old||'labor';
-    drawMarket()
-}
-$('marketSelect').onchange=drawMarket;
-function drawMarket(){
-    let k=$('marketSelect').value,d=rows.filter(x=>x.itemId===k);
-    if(chart)chart.destroy();
-    chart=new Chart($('marketChart'),{
-        type:'line',
-        data:{
-            labels:d.map((x,i)=>x.createdAt?.toDate?x.createdAt.toDate().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'#'+(i+1)),
-            datasets:[{
-                label:labels[k]+' 단가 (₩)',
-                data:d.map(x=>x.unitPrice),
-                borderColor:'#5de0e6',backgroundColor:'rgba(93,224,230,.2)',fill:true,tension:.4,pointBackgroundColor:'#f8c94d', pointRadius: 5, pointHoverRadius: 8
+    if(!rows.length) return;
+    let opts = R.map(r=>`<option value="${r[0]}">${r[1]}</option>`).join('');
+    if(!$('marketSelect').innerHTML) $('marketSelect').innerHTML=opts;
+    
+    let k=$('marketSelect').value;
+    let data = rows.filter(r=>r.itemId===k);
+    if(chart) chart.destroy();
+    
+    let ctx = $('marketChart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map((_,i)=>i+1+'회차'),
+            datasets: [{
+                label: '체결 단가 (₩)',
+                data: data.map(d=>d.unitPrice),
+                borderColor: '#5de0e6',
+                backgroundColor: 'rgba(93,224,230,0.2)',
+                tension: 0.3,
+                fill: true
             }]
         },
-        options:{
-            responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{labels:{color:'#eaf2ff', font: {family: 'ui-sans-serif, system-ui'}}}},
-            scales:{
-                x:{ticks:{color:'#9fb0c9', maxTicksLimit: 8},grid:{color:'rgba(159,176,201,.15)'}},
-                y:{beginAtZero:true,ticks:{color:'#9fb0c9',callback:v=>'₩'+fmt(v)},grid:{color:'rgba(159,176,201,.15)'}}
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(151,202,255,0.1)' }, ticks: { color: '#9fb0c9' } },
+                x: { grid: { color: 'rgba(151,202,255,0.1)' }, ticks: { color: '#9fb0c9' } }
             }
         }
-    })
+    });
 }
-</script></body></html>
+$('marketSelect').onchange = renderMarket;
+
+$('copyCode').onclick = () => {
+    navigator.clipboard.writeText($('teacherCode').textContent).then(()=>note('코드가 복사되었습니다.'));
+};
+</script>
+</body>
+</html>
